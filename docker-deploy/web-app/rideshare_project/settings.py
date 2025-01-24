@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-9teawuq_u6!@l$5-70dhqou%_@_i91g+-k8#lrt^qh#-elu7@z
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'ece568-first.colab.duke.edu', 'web']
 
 
 # Application definition
@@ -75,11 +75,17 @@ WSGI_APPLICATION = 'rideshare_project.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',
+        'USER': 'postgres',
+        'PASSWORD': 'postgres',
+        # # this is for docker container name
+        # 'HOST': 'db',
+        # if you are running postgres on your host machine, use 'localhost'
+        'HOST' : 'localhost',
+        'PORT': 5432,
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

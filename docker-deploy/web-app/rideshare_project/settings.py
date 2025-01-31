@@ -25,7 +25,16 @@ SECRET_KEY = 'django-insecure-9teawuq_u6!@l$5-70dhqou%_@_i91g+-k8#lrt^qh#-elu7@z
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'ece568-first.colab.duke.edu', 'web']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'ece568-first.colab.duke.edu', 'web', 'vcm-45083.vm.duke.edu', '0.0.0.0']
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'http://0.0.0.0:8000',
+    'http://web:8000',
+    'http://ece568-first.colab.duke.edu:8000',
+    'http://vcm-45083.vm.duke.edu:8000'
+]
 
 
 # Application definition
@@ -37,6 +46,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'accounts',
+    'crispy_forms',
+    'crispy_bootstrap5',
 ]
 
 MIDDLEWARE = [
@@ -54,7 +66,7 @@ ROOT_URLCONF = 'rideshare_project.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -79,10 +91,10 @@ DATABASES = {
         'NAME': 'postgres',
         'USER': 'postgres',
         'PASSWORD': 'postgres',
-        # # this is for docker container name
-        # 'HOST': 'db',
+        # this is for docker container name
+        'HOST': 'db',
         # if you are running postgres on your host machine, use 'localhost'
-        'HOST' : 'localhost',
+        # 'HOST' : 'localhost',
         'PORT': 5432,
     }
 }

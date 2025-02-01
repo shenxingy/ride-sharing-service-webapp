@@ -3,11 +3,58 @@
 {% block content %}
 <div class="container mt-5">
     <h2>Driver Dashboard</h2>
-    <div class="card">
+    
+    <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title">Welcome to Driver Mode</h5>
-            <p class="card-text">Here you can manage your rides and view requests.</p>
+            <h5 class="card-title">Your Vehicle Information</h5>
+            <p class="card-text">
+                Type: {{ vehicle.type }}<br>
+                Plate Number: {{ vehicle.plate_number }}<br>
+                Max Passengers: {{ vehicle.max_passengers }}
+            </p>
         </div>
     </div>
+
+    <h3>Your Active Rides</h3>
+    {% if my_rides %}
+        {% for ride in my_rides %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">{{ ride.pickup_location }} → {{ ride.dropoff_location }}</h5>
+                    <p class="card-text">
+                        Status: <span class="badge bg-{{ ride.status|lower }}">{{ ride.status }}</span><br>
+                        Passengers: {{ ride.passenger_count }}<br>
+                        Requested: {{ ride.created_at|date:"M d, Y H:i" }}
+                    </p>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No active rides.</p>
+    {% endif %}
+
+    <h3 class="mt-4">Available Ride Requests</h3>
+    {% if pending_rides %}
+        {% for ride in pending_rides %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">{{ ride.pickup_location }} → {{ ride.dropoff_location }}</h5>
+                    <p class="card-text">
+                        Passengers: {{ ride.passenger_count }}<br>
+                        Requested: {{ ride.created_at|date:"M d, Y H:i" }}<br>
+                        {% if ride.special_request %}
+                        Special Request: {{ ride.special_request }}
+                        {% endif %}
+                    </p>
+                    <form method="post" action="{% url 'accept_ride' ride.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success">Accept Ride</button>
+                    </form>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No pending ride requests.</p>
+    {% endif %}
 </div>
 {% endblock %}

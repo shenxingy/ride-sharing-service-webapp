@@ -8,18 +8,17 @@ services:
         - POSTGRES_USER=postgres
         - POSTGRES_PASSWORD=postgres
       volumes:
-        - data-volume:/var/lib/postgresql/data
+        - postgres_data:/var/lib/postgresql/data
   web-init:
       build: ./web-app
       command: bash -c "chmod +x /code/initserver.sh && /code/initserver.sh"
       volumes:
-        - ./web-app:/code:rw
+        - ./web-app:/code
       depends_on:
         - db
   web:
       build: ./web-app
-      user: nobody
-      command: /code/runserver.sh
+      command: bash -c "chmod +x /code/runserver.sh && /code/runserver.sh"
       volumes:
         - ./web-app:/code
       expose:
@@ -35,4 +34,4 @@ services:
      depends_on:
        - web
 volumes:
-   data-volume:
+  postgres_data:

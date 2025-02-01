@@ -93,11 +93,11 @@ DATABASES = {
         'NAME': 'postgres',
         'USER': 'postgres',
         'PASSWORD': 'postgres',
-        # this is for docker container name
         'HOST': 'db',
-        # if you are running postgres on your host machine, use 'localhost'
-        # 'HOST' : 'localhost',
         'PORT': 5432,
+        'OPTIONS': {
+            'connect_timeout': 5,
+        }
     }
 }
 

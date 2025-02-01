@@ -5,7 +5,11 @@
     <h1>Welcome to Rideshare</h1>
     {% if user.is_authenticated %}
         <p>Welcome, {{ user.username }}!</p>
-        <a href="{% url 'accounts:logout' %}" class="btn btn-danger">Logout</a>
+        <div class="d-grid gap-3">
+            <a href="{% url 'driver_dashboard' %}" class="btn btn-primary btn-lg">Driver Mode</a>
+            <a href="{% url 'rider_dashboard' %}" class="btn btn-success btn-lg">Rider Mode</a>
+        </div>
+        <a href="{% url 'accounts:logout' %}" class="btn btn-danger mt-3">Logout</a>
     {% else %}
         <p>Please login or register to continue.</p>
         <a href="{% url 'accounts:login' %}" class="btn btn-primary">Login</a>

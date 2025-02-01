@@ -7,7 +7,25 @@
         <a href="{% url 'request_ride' %}" class="btn btn-primary">Request a Ride</a>
     </div>
     
-    <h3>Your Ride History</h3>
+    <h3>Available Shared Rides</h3>
+    {% if shared_rides %}
+        {% for ride in shared_rides %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">{{ ride.pickup_location }} → {{ ride.dropoff_location }}</h5>
+                    <p class="card-text">
+                        Current Passengers: {{ ride.total_passengers }}<br>
+                        Requested: {{ ride.created_at|date:"M d, Y H:i" }}
+                    </p>
+                    <a href="{% url 'join_ride' ride.id %}" class="btn btn-success">Join Ride</a>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No shared rides available.</p>
+    {% endif %}
+
+    <h3 class="mt-4">Your Ride History</h3>
     {% if rides %}
         {% for ride in rides %}
             <div class="card mb-3">
@@ -16,6 +34,9 @@
                     <p class="card-text">
                         Status: <span class="badge bg-{{ ride.status|lower }}">{{ ride.status }}</span><br>
                         Passengers: {{ ride.passenger_count }}<br>
+                        {% if ride.allow_sharing %}
+                        Total Passengers: {{ ride.total_passengers }}<br>
+                        {% endif %}
                         Requested: {{ ride.created_at|date:"M d, Y H:i" }}
                     </p>
                 </div>

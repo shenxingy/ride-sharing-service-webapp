@@ -17,8 +17,19 @@ class Ride(models.Model):
     special_request = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True)
+    allow_sharing = models.BooleanField(default=False)
+    total_passengers = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Ride from {self.pickup_location} to {self.dropoff_location}" 
+        return f"Ride from {self.pickup_location} to {self.dropoff_location}"
+
+class RideShare(models.Model):
+    ride = models.ForeignKey(Ride, on_delete=models.CASCADE, related_name='shared_rides')
+    rider = models.ForeignKey(User, on_delete=models.CASCADE)
+    passenger_count = models.IntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['ride', 'rider'] 

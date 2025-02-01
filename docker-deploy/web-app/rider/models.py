@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from driver.models import Vehicle
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 class Ride(models.Model):
     STATUS_CHOICES = [
@@ -13,7 +14,9 @@ class Ride(models.Model):
     rider = models.ForeignKey(User, on_delete=models.CASCADE, related_name='rides_requested')
     pickup_location = models.CharField(max_length=255)
     dropoff_location = models.CharField(max_length=255)
-    passenger_count = models.IntegerField()
+    passenger_count = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(25)] 
+    )
     special_request = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True)

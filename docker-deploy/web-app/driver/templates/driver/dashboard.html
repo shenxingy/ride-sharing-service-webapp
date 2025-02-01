@@ -22,7 +22,7 @@
                 <div class="card-body">
                     <h5 class="card-title">{{ ride.pickup_location }} → {{ ride.dropoff_location }}</h5>
                     <p class="card-text">
-                        Status: <span class="badge bg-{{ ride.status|lower }}">{{ ride.status }}</span><br>
+                        Status: <span class="badge text-dark bg-light border">{{ ride.status }}</span><br>
                         Passengers: {{ ride.passenger_count }}<br>
                         Requested: {{ ride.created_at|date:"M d, Y H:i" }}
                     </p>

@@ -1,15 +1,23 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Vehicle
 from .forms import VehicleRegistrationForm
 from django.contrib import messages
+from rider.models import Ride
 
 @login_required
 def driver_dashboard(request):
     # check if user has registered vehicle
     try:
         vehicle = Vehicle.objects.get(driver=request.user)
-        return render(request, 'driver/dashboard.html', {'vehicle': vehicle})
+        # Get all pending rides and accepted rides by this driver
+        pending_rides = Ride.objects.filter(status='PENDING').order_by('-created_at')
+        my_rides = Ride.objects.filter(vehicle=vehicle).exclude(status='COMPLETED').order_by('-created_at')
+        return render(request, 'driver/dashboard.html', {
+            'vehicle': vehicle,
+            'pending_rides': pending_rides,
+            'my_rides': my_rides
+        })
     except Vehicle.DoesNotExist:
         return redirect('vehicle_registration')
 
@@ -26,3 +34,22 @@ def vehicle_registration(request):
     else:
         form = VehicleRegistrationForm()
     return render(request, 'driver/vehicle_registration.html', {'form': form})
+
+@login_required
+def accept_ride(request, ride_id):
+    try:
+        vehicle = Vehicle.objects.get(driver=request.user)
+        ride = get_object_or_404(Ride, id=ride_id, status='PENDING')
+        
+        if ride.passenger_count <= vehicle.max_passengers:
+            ride.vehicle = vehicle
+            ride.status = 'CONFIRMED'
+            ride.save()
+            messages.success(request, 'Ride accepted successfully!')
+        else:
+            messages.error(request, 'Too many passengers for your vehicle capacity!')
+            
+    except Vehicle.DoesNotExist:
+        messages.error(request, 'You need to register a vehicle first!')
+    
+    return redirect('driver_dashboard')

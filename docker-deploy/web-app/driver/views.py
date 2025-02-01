@@ -41,7 +41,9 @@ def accept_ride(request, ride_id):
         vehicle = Vehicle.objects.get(driver=request.user)
         ride = get_object_or_404(Ride, id=ride_id, status='PENDING')
         
-        if ride.passenger_count <= vehicle.max_passengers:
+        total_passengers = ride.total_passengers if ride.total_passengers > 0 else ride.passenger_count
+        
+        if total_passengers <= vehicle.max_passengers:
             ride.vehicle = vehicle
             ride.status = 'CONFIRMED'
             ride.save()

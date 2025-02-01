@@ -17,8 +17,6 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import render
-from driver.views import driver_dashboard, vehicle_registration, accept_ride
-from rider.views import rider_dashboard, request_ride
 
 def home(request):
     return render(request, 'home.html')
@@ -26,10 +24,7 @@ def home(request):
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),
-    path('driver/dashboard/', driver_dashboard, name='driver_dashboard'),
-    path('driver/register-vehicle/', vehicle_registration, name='vehicle_registration'),
-    path('driver/accept-ride/<int:ride_id>/', accept_ride, name='accept_ride'),
-    path('rider/dashboard/', rider_dashboard, name='rider_dashboard'),
-    path('rider/request-ride/', request_ride, name='request_ride'),
+    path('driver/', include('driver.urls')),
+    path('rider/', include('rider.urls')),
     path('', home, name='home'),
 ]

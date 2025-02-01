@@ -1,8 +1,8 @@
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
-from .models import Ride, RideShare
 from driver.models import Vehicle
+from .models import Ride, RideShare
 
 class RideSharingTests(TestCase):
     def setUp(self):
@@ -36,7 +36,6 @@ class RideSharingTests(TestCase):
         self.assertTrue(ride.allow_sharing)
         self.assertEqual(ride.passenger_count, 2)
         self.assertEqual(ride.total_passengers, 0)  # Should be updated when others join
-
     def test_join_ride(self):
         # Create initial ride
         ride = Ride.objects.create(
@@ -89,7 +88,6 @@ class RideSharingTests(TestCase):
         ride.refresh_from_db()
         self.assertEqual(ride.status, 'CONFIRMED')
         self.assertEqual(ride.vehicle, self.vehicle)
-
     def test_exceed_vehicle_capacity(self):
         # Create ride with too many passengers
         ride = Ride.objects.create(

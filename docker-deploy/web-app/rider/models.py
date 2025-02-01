@@ -22,6 +22,7 @@ class Ride(models.Model):
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True)
     allow_sharing = models.BooleanField(default=False)
     total_passengers = models.IntegerField(default=0)
+    required_arrival_time = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import render
-from driver.views import driver_dashboard
+from driver.views import driver_dashboard, vehicle_registration
 from rider.views import rider_dashboard
 
 def home(request):
@@ -27,6 +27,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),
     path('driver/dashboard/', driver_dashboard, name='driver_dashboard'),
+    path('driver/register-vehicle/', vehicle_registration, name='vehicle_registration'),
     path('rider/dashboard/', rider_dashboard, name='rider_dashboard'),
     path('', home, name='home'),
 ]

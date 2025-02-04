@@ -14,4 +14,4 @@ venv/
 .DS_Store
 
 # 忽略所有 00* 文件
-*/migrations/00*
+**/migrations/00*

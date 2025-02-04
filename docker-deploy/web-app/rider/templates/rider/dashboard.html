@@ -1,49 +1,148 @@
 {% extends 'base.html' %}
+{% load crispy_forms_tags %}
 
 {% block content %}
 <div class="container mt-5">
     <h2>Rider Dashboard</h2>
+
+    {# Show Request and Share buttons only if no open rides exist #}
+    {% if not open_rides %}
     <div class="mb-4">
         <a href="{% url 'request_ride' %}" class="btn btn-primary">Request a Ride</a>
     </div>
-    
-    <h3>Available Shared Rides</h3>
-    {% if shared_rides %}
-        {% for ride in shared_rides %}
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">{{ ride.pickup_location }} → {{ ride.dropoff_location }}</h5>
-                    <p class="card-text">
-                        Current Passengers: {{ ride.total_passengers }}<br>
-                        Requested: {{ ride.created_at|date:"M d, Y H:i" }}
-                    </p>
-                    <a href="{% url 'join_ride' ride.id %}" class="btn btn-success">Join Ride</a>
-                </div>
-            </div>
-        {% endfor %}
-    {% else %}
-        <p>No shared rides available.</p>
     {% endif %}
 
-    <h3 class="mt-4">Your Ride History</h3>
-    {% if rides %}
-        {% for ride in rides %}
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">{{ ride.pickup_location }} → {{ ride.dropoff_location }}</h5>
-                    <p class="card-text">
-                        Status: <span class="badge bg-{{ ride.status|lower }}">{{ ride.status }}</span><br>
-                        Passengers: {{ ride.passenger_count }}<br>
-                        {% if ride.allow_sharing %}
-                        Total Passengers: {{ ride.total_passengers }}<br>
-                        {% endif %}
-                        Requested: {{ ride.created_at|date:"M d, Y H:i" }}
-                    </p>
+    {# Open Rides Section #}
+    {% if open_rides %}
+    <h3 class="mt-4">Your Open Rides</h3>
+    {% for ride in open_rides %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">{{ ride.pickup_location }} → {{ ride.dropoff_location }}</h5>
+            <p class="card-text">
+                Status:
+                {% if ride.status == 'PENDING' %}
+                <span class="badge bg-warning text-dark">Pending</span>
+                {% elif ride.status == 'CONFIRMED' %}
+                <span class="badge bg-info text-dark">Confirmed</span>
+                {% endif %}
+                <br>
+                Passengers: {{ ride.passenger_count }}<br>
+                {% if ride.allow_sharing %}
+                Total Passengers: {{ ride.total_passengers }}<br>
+                {% endif %}
+                Requested: {{ ride.created_at|date:"M d, Y H:i" }}
+            </p>
+
+            {% if ride.status == 'PENDING' %}
+            <a href="{% url 'edit_ride' ride.id %}" class="btn btn-warning">Modify Ride</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if not open_rides %}
+        {# Search Open Rides #}
+        <h3 class="mt-4">Search for Available Rides</h3>
+        <form method="GET" action="{% url 'rider_dashboard' %}" class="mb-4">
+            <input type="hidden" name="search" value="1">
+            <div class="row">
+                <div class="col-md-3">
+                    <label>Sharer Pickup</label>
+                    <input type="text" id="id_sharer_pickup" name="sharer_pickup" class="form-control" placeholder="Enter pickup location">
+                </div>
+                <div class="col-md-3">
+                    <label>Sharer Dropoff</label>
+                    <input type="text" id="id_sharer_dropoff" name="sharer_dropoff" class="form-control" placeholder="Enter dropoff location">
+                </div>
+                <div class="col-md-3">
+                    <label>Earliest Arrival Time</label>
+                    <input type="datetime-local" name="earliest_arrival" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label>Latest Arrival Time</label>
+                    <input type="datetime-local" name="latest_arrival" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    <label>Passengers</label>
+                    <input type="number" name="passenger_count" class="form-control" min="1">
+                </div>
+                <div class="col-md-1 align-self-end">
+                    <button type="submit" class="btn btn-info w-100">Search</button>
                 </div>
             </div>
-        {% endfor %}
+        </form>
+        
+        <script>
+            function initAutocomplete() {
+                let options = { componentRestrictions: { country: "us" } };
+        
+                let pickupAutocomplete = new google.maps.places.Autocomplete(
+                    document.getElementById("id_sharer_pickup"), options
+                );
+        
+                let dropoffAutocomplete = new google.maps.places.Autocomplete(
+                    document.getElementById("id_sharer_dropoff"), options
+                );
+            }
+        
+            window.onload = function () {
+                initAutocomplete();
+            };
+        </script>
+        </form>
+
+        {# Display Search Results #}
+        {% if search_performed %}
+            <h4>Search Results</h4>
+            {% if search_results %}
+                {% for ride in search_results %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ ride.pickup_location }} → {{ ride.dropoff_location }}</h5>
+                        <p class="card-text">
+                            Arrival Time: {{ ride.required_arrival_time|date:"M d, Y H:i" }}<br>
+                            Passengers: {{ ride.total_passengers }}/{{ ride.passenger_count }}<br>
+                        </p>
+                        <a href="{% url 'join_ride' ride.id %}" class="btn btn-success">Join Ride</a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>No rides found matching your criteria.</p>
+            {% endif %}
+        {% endif %}
+    {% endif %}
+
+    {# Ride History Section #}
+    <h3 class="mt-4">Ride History</h3>
+    {% if closed_rides %}
+    {% for ride in closed_rides %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">{{ ride.pickup_location }} → {{ ride.dropoff_location }}</h5>
+            <p class="card-text">
+                Status:
+                {% if ride.status == 'COMPLETED' %}
+                <span class="badge bg-success">Completed</span>
+                {% elif ride.status == 'CANCELLED' %}
+                <span class="badge bg-danger">Cancelled</span>
+                {% endif %}
+                <br>
+                Passengers: {{ ride.passenger_count }}<br>
+                {% if ride.allow_sharing %}
+                Total Passengers: {{ ride.total_passengers }}<br>
+                {% endif %}
+                Requested: {{ ride.created_at|date:"M d, Y H:i" }}
+            </p>
+        </div>
+    </div>
+    {% endfor %}
     {% else %}
-        <p>No ride history yet.</p>
+    <p>No ride history yet.</p>
     {% endif %}
 </div>
+
+<script async defer src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places&callback=initMap"></script>
 {% endblock %}

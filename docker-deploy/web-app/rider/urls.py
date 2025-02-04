@@ -5,6 +5,6 @@ urlpatterns = [
     path("request/", request_ride, name="request_ride"),
     path("dashboard/", rider_dashboard, name="rider_dashboard"),
     path("join/<int:ride_id>/", join_ride, name="join_ride"),
-    path("edit/<int:ride_id>/", edit_ride, name="edit_ride"),  # ✅ New edit ride route
+    path("edit/<int:ride_id>/", edit_ride, name="edit_ride"),  
     path("get_eta/", get_eta, name="get_eta"),
 ]

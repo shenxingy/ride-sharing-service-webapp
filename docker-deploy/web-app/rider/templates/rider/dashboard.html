@@ -3,36 +3,61 @@
 {% block content %}
 <div class="container mt-5">
     <h2>Rider Dashboard</h2>
-    <div class="mb-4">
-        <a href="{% url 'request_ride' %}" class="btn btn-primary">Request a Ride</a>
-    </div>
-    
-    <h3>Available Shared Rides</h3>
-    {% if shared_rides %}
-        {% for ride in shared_rides %}
+
+    {# Show Request and Share buttons only if no open rides exist #}
+    {% if not open_rides %}
+        <div class="mb-4">
+            <a href="{% url 'request_ride' %}" class="btn btn-primary">Request a Ride</a>
+            <a href="{% url 'join_ride' 1 %}" class="btn btn-secondary">Share a Ride</a>  
+        </div>
+    {% endif %}
+
+    {# Open Rides Section (PENDING or CONFIRMED) #}
+    {% if open_rides %}
+        <h3 class="mt-4">Open Rides </h3>
+        {% for ride in open_rides %}
             <div class="card mb-3">
                 <div class="card-body">
                     <h5 class="card-title">{{ ride.pickup_location }} → {{ ride.dropoff_location }}</h5>
                     <p class="card-text">
-                        Current Passengers: {{ ride.total_passengers }}<br>
+                        Status: 
+                        {% if ride.status == 'PENDING' %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                        {% elif ride.status == 'CONFIRMED' %}
+                            <span class="badge bg-info text-dark">Confirmed</span>
+                        {% endif %}
+                        <br>
+                        Passengers: {{ ride.passenger_count }}<br>
+                        {% if ride.allow_sharing %}
+                        Total Passengers: {{ ride.total_passengers }}<br>
+                        {% endif %}
                         Requested: {{ ride.created_at|date:"M d, Y H:i" }}
                     </p>
-                    <a href="{% url 'join_ride' ride.id %}" class="btn btn-success">Join Ride</a>
+
+                    {# Show "Edit Ride" button only for PENDING rides #}
+                    {% if ride.status == 'PENDING' %}
+                        <a href="{% url 'edit_ride' ride.id %}" class="btn btn-warning">Modify Ride</a>
+                    {% endif %}
                 </div>
             </div>
         {% endfor %}
-    {% else %}
-        <p>No shared rides available.</p>
     {% endif %}
 
-    <h3 class="mt-4">Your Ride History</h3>
-    {% if rides %}
-        {% for ride in rides %}
+    {# Ride History Section (Completed or Cancelled) #}
+    <h3 class="mt-4">Ride History </h3>
+    {% if closed_rides %}
+        {% for ride in closed_rides %}
             <div class="card mb-3">
                 <div class="card-body">
                     <h5 class="card-title">{{ ride.pickup_location }} → {{ ride.dropoff_location }}</h5>
                     <p class="card-text">
-                        Status: <span class="badge text-dark bg-light border">{{ ride.status }}</span><br>
+                        Status: 
+                        {% if ride.status == 'COMPLETED' %}
+                            <span class="badge bg-success">Completed</span>
+                        {% elif ride.status == 'CANCELLED' %}
+                            <span class="badge bg-danger">Cancelled</span>
+                        {% endif %}
+                        <br>
                         Passengers: {{ ride.passenger_count }}<br>
                         {% if ride.allow_sharing %}
                         Total Passengers: {{ ride.total_passengers }}<br>

@@ -55,19 +55,22 @@ def get_eta(request):
 
 @login_required
 def rider_dashboard(request):
-    """Display user's rides and available shared rides."""
-    user_rides = Ride.objects.filter(rider=request.user).order_by('-created_at')
+    """Display user's rides: separate open (active) and closed (completed/cancelled) rides."""
+    open_rides = Ride.objects.filter(
+        rider=request.user,
+        status__in=['PENDING', 'CONFIRMED']
+    ).order_by('-created_at')
 
-    # Get available shared rides (excluding the user's own)
-    available_shared_rides = Ride.objects.filter(
-        status='PENDING', allow_sharing=True
-    ).exclude(rider=request.user).order_by('-created_at')
+    closed_rides = Ride.objects.filter(
+        rider=request.user,
+        status__in=['COMPLETED', 'CANCELLED']
+    ).order_by('-created_at')
 
     return render(request, 'rider/dashboard.html', {
-        'rides': user_rides,
-        'shared_rides': available_shared_rides
+        'open_rides': open_rides,
+        'closed_rides': closed_rides
     })
-
+    
 @login_required
 def request_ride(request):
     """Handles ride requests and provides an estimated arrival time."""
@@ -93,6 +96,24 @@ def request_ride(request):
                  "form": form,
                  "GOOGLE_MAPS_API_KEY": GOOGLE_MAPS_API_KEY
         })
+
+@login_required
+def edit_ride(request, ride_id):
+    """Allows users to modify their ride only if it is still PENDING."""
+    ride = get_object_or_404(Ride, id=ride_id, rider=request.user, status='PENDING')
+
+    if request.method == 'POST':
+        form = RideRequestForm(request.POST, instance=ride)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Ride updated successfully.")
+            return redirect('rider_dashboard')
+        else:
+            messages.error(request, "There was an error updating your ride.")
+    else:
+        form = RideRequestForm(instance=ride)
+
+    return render(request, 'rider/edit_ride.html', {'form': form, 'ride': ride})
 
 @login_required
 def join_ride(request, ride_id):

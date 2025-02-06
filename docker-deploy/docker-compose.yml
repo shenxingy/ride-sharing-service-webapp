@@ -25,6 +25,13 @@ services:
         - "8000"
       depends_on:
         - web-init
+      networks:
+        - default
+      dns:
+        - 8.8.8.8
+        - 8.8.4.4
+      extra_hosts:
+        - "smtp.gmail.com:74.125.133.109"
   nginx:
      image: nginx:latest
      ports:

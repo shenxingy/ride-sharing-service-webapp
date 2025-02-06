@@ -4,3 +4,4 @@ python-dotenv>=1.0.0
 django-crispy-forms>=2.0
 crispy-bootstrap5>=0.7 
 requests>=2.26.0
+pytz>=2021.1

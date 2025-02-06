@@ -1,5 +1,6 @@
 import os
 import json
+import pytz
 import requests
 from datetime import datetime
 from django.db.models import Q
@@ -133,7 +134,9 @@ def get_eta(request):
 
 @login_required
 def rider_dashboard(request):
-    """Display user's rides and allow searching for open rides."""
+    """Display user's rides, allow searching, and process ride joining."""
+
+    # User's own rides
     open_rides = Ride.objects.filter(
         rider=request.user,
         status__in=['PENDING', 'CONFIRMED']
@@ -144,41 +147,59 @@ def rider_dashboard(request):
         status__in=['COMPLETED', 'CANCELLED']
     ).order_by('-created_at')
 
+    # Rides user has joined as a sharer
+    sharer_rides = RideShare.objects.filter(rider=request.user).select_related('ride')
+
     search_results = []
     search_performed = False
-    print("Candidate Rides:", Ride.objects.filter(status="PENDING").exclude(rider=request.user))
-    
+
+    if request.method == "POST":
+        # Handle Joining a Ride directly from Dashboard
+        if "join_ride_id" in request.POST:
+            ride_id = request.POST.get("join_ride_id")
+            sharer_pickup = request.POST.get("sharer_pickup")
+            sharer_dropoff = request.POST.get("sharer_dropoff")
+            passenger_count = int(request.POST.get("passenger_count", 1))
+
+            ride = get_object_or_404(Ride, id=ride_id, status='PENDING', allow_sharing=True)
+
+            # Check if adding sharer would exceed max passengers
+            total_passengers = ride.passenger_count + sum(s.passenger_count for s in ride.shared_rides.all()) + passenger_count
+            MAX_PASSENGERS = 4  # Example limit
+
+            if total_passengers > MAX_PASSENGERS:
+                messages.error(request, "Ride is full. Cannot accommodate more passengers.")
+            else:
+                # Create RideShare entry
+                RideShare.objects.create(
+                    ride=ride,
+                    rider=request.user,
+                    passenger_count=passenger_count,
+                    pickup_location=sharer_pickup,
+                    dropoff_location=sharer_dropoff
+                )
+                ride.total_passengers = total_passengers
+                ride.save()
+                messages.success(request, "Successfully joined the ride!")
+
+            return redirect("rider_dashboard")  # Redirect to refresh the page
+
+    # Handle Searching for Rides
     if request.method == "GET" and "search" in request.GET:
-        # 获取搜索参数
         sharer_pickup = request.GET.get("sharer_pickup", "").strip()
         sharer_dropoff = request.GET.get("sharer_dropoff", "").strip()
         earliest_arrival = request.GET.get("earliest_arrival")
         latest_arrival = request.GET.get("latest_arrival")
         passenger_count = request.GET.get("passenger_count")
-        if earliest_arrival:
-            try:
-                earliest_arrival_dt = datetime.strptime(earliest_arrival, "%Y-%m-%dT%H:%M")
-            except ValueError:
-                print("Invalid earliest arrival format:", earliest_arrival)
 
-        if latest_arrival:
-            try:
-                latest_arrival_dt = datetime.strptime(latest_arrival, "%Y-%m-%dT%H:%M")
-            except ValueError:
-                print("Invalid latest arrival format:", latest_arrival)
-
-        # 构建基本查询（仅搜索 "PENDING" 状态的 Ride）
-        query = Q(status="PENDING")
-
-
-        # 获取候选行程
+        # Filter rides based on criteria
+        query = Q(status="PENDING", allow_sharing=True)
         candidate_rides = Ride.objects.filter(query).exclude(rider=request.user).order_by('required_arrival_time')
 
-        # 进一步优化匹配
+        # Further refine results using route optimization
         valid_rides = []
         current_time = now()
         for ride in candidate_rides:
-            # 计算共享路线
             route_info = get_optimized_route(
                 requester_pickup=ride.pickup_location,
                 requester_dropoff=ride.dropoff_location,
@@ -190,20 +211,27 @@ def rider_dashboard(request):
                 requester_eta = current_time + timedelta(minutes=route_info["requester_duration"])
                 sharer_eta = current_time + timedelta(minutes=route_info["sharer_duration"])
 
-                # 确保 Sharer 和 Requester 都能按时到达
-                if requester_eta <= ride.required_arrival_time and (sharer_eta <= latest_arrival_dt and sharer_eta >= earliest_arrival_dt):
+                # Convert settings.TIME_ZONE (str) to a tzinfo object
+                timezone = pytz.timezone(settings.TIME_ZONE)
+                latest_arrival_dt = timezone.localize(datetime.strptime(latest_arrival, "%Y-%m-%dT%H:%M"))
+                earliest_arrival_dt = timezone.localize(datetime.strptime(earliest_arrival, "%Y-%m-%dT%H:%M"))
+
+                # Ensure Sharer and Requester can arrive on time
+                if requester_eta <= ride.required_arrival_time and (earliest_arrival_dt <= sharer_eta <= latest_arrival_dt):
                     valid_rides.append(ride)
 
         search_results = valid_rides
         search_performed = True
 
-    return render(request, 'rider/dashboard.html', {
-        'open_rides': open_rides,
-        'closed_rides': closed_rides,
-        'search_results': search_results,
-        'search_performed': search_performed,
-         "GOOGLE_MAPS_API_KEY": GOOGLE_MAPS_API_KEY
+    return render(request, "rider/dashboard.html", {
+        "open_rides": open_rides,
+        "sharer_rides": sharer_rides,
+        "closed_rides": closed_rides,
+        "search_results": search_results,
+        "search_performed": search_performed,
+        "GOOGLE_MAPS_API_KEY": GOOGLE_MAPS_API_KEY,
     })
+
     
 @login_required
 def request_ride(request):
@@ -285,4 +313,4 @@ def join_ride(request, ride_id):
     else:
         form = JoinRideForm()
 
-    return render(request, 'rider/join_ride.html', {'form': form, 'ride': ride})
+    return render(request, 'rider/dashboard.html')

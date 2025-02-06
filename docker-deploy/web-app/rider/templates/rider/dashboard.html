@@ -5,16 +5,17 @@
 <div class="container mt-5">
     <h2>Rider Dashboard</h2>
 
-    {# Show Request and Share buttons only if no open rides exist #}
+    {# Show Request Ride button only if no open rides exist #}
     {% if not open_rides %}
     <div class="mb-4">
         <a href="{% url 'request_ride' %}" class="btn btn-primary">Request a Ride</a>
     </div>
     {% endif %}
 
-    {# Open Rides Section #}
-    {% if open_rides %}
+    {% if open_rides or sharer_rides %}
     <h3 class="mt-4">Your Open Rides</h3>
+    
+    {# Rides Created by the User (Requester) #}
     {% for ride in open_rides %}
     <div class="card mb-3">
         <div class="card-body">
@@ -36,10 +37,42 @@
 
             {% if ride.status == 'PENDING' %}
             <a href="{% url 'edit_ride' ride.id %}" class="btn btn-warning">Modify Ride</a>
+            <a href="{% url 'cancel_ride' ride.id %}" class="btn btn-danger">Cancel Ride</a>
             {% endif %}
         </div>
     </div>
     {% endfor %}
+    
+    {# Rides Joined as a Sharer #}
+    {% for share in sharer_rides %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">{{ share.ride.pickup_location }} → {{ share.ride.dropoff_location }}</h5>
+            <p class="card-text">
+                Status:
+                {% if share.ride.status == 'PENDING' %}
+                <span class="badge bg-warning text-dark">Pending</span>
+                {% elif share.ride.status == 'CONFIRMED' %}
+                <span class="badge bg-info text-dark">Confirmed</span>
+                {% endif %}
+                <br>
+                Your Pickup: {{ share.pickup_location }}<br>
+                Your Dropoff: {{ share.dropoff_location }}<br>
+                Passengers in Ride: {{ share.ride.total_passengers }}/{{ share.ride.passenger_count }}<br>
+                Requested: {{ share.ride.created_at|date:"M d, Y H:i" }}
+            </p>
+
+            {% if share.ride.status == 'PENDING' %}
+            <form method="POST" action="{% url 'rider_dashboard' %}">
+                {% csrf_token %}
+                <input type="hidden" name="leave_ride_id" value="{{ share.id }}">
+                <button type="submit" class="btn btn-danger">Leave Ride</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    
     {% endif %}
 
     {% if not open_rides %}
@@ -73,27 +106,8 @@
                 </div>
             </div>
         </form>
-        
-        <script>
-            function initAutocomplete() {
-                let options = { componentRestrictions: { country: "us" } };
-        
-                let pickupAutocomplete = new google.maps.places.Autocomplete(
-                    document.getElementById("id_sharer_pickup"), options
-                );
-        
-                let dropoffAutocomplete = new google.maps.places.Autocomplete(
-                    document.getElementById("id_sharer_dropoff"), options
-                );
-            }
-        
-            window.onload = function () {
-                initAutocomplete();
-            };
-        </script>
-        </form>
 
-        {# Display Search Results #}
+        {# Display Search Results with Join Ride Form #}
         {% if search_performed %}
             <h4>Search Results</h4>
             {% if search_results %}
@@ -105,7 +119,14 @@
                             Arrival Time: {{ ride.required_arrival_time|date:"M d, Y H:i" }}<br>
                             Passengers: {{ ride.total_passengers }}/{{ ride.passenger_count }}<br>
                         </p>
-                        <a href="{% url 'join_ride' ride.id %}" class="btn btn-success">Join Ride</a>
+                        <form method="POST" action="{% url 'rider_dashboard' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="join_ride_id" value="{{ ride.id }}">
+                            <input type="hidden" name="sharer_pickup" value="{{ request.GET.sharer_pickup }}">
+                            <input type="hidden" name="sharer_dropoff" value="{{ request.GET.sharer_dropoff }}">
+                            <input type="hidden" name="passenger_count" value="{{ request.GET.passenger_count }}">
+                            <button type="submit" class="btn btn-success mt-2">Join Ride</button>
+                        </form>
                     </div>
                 </div>
                 {% endfor %}

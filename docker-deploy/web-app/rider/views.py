@@ -4,7 +4,7 @@ import requests
 from datetime import datetime
 from django.db.models import Q
 from django.conf import settings
-from django.utils.timezone import now, make_aware
+from django.utils.timezone import now
 from datetime import timedelta
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -59,8 +59,6 @@ def get_optimized_route(requester_pickup, requester_dropoff, sharer_pickup, shar
         "key": GOOGLE_MAPS_API_KEY
     }
     
-
-
     response = requests.get(url, params=params)
     data = response.json()
 
@@ -159,13 +157,13 @@ def rider_dashboard(request):
         passenger_count = request.GET.get("passenger_count")
         if earliest_arrival:
             try:
-                earliest_arrival_dt = make_aware(datetime.strptime(earliest_arrival, "%Y-%m-%dT%H:%M"))
+                earliest_arrival_dt = datetime.strptime(earliest_arrival, "%Y-%m-%dT%H:%M")
             except ValueError:
                 print("Invalid earliest arrival format:", earliest_arrival)
 
         if latest_arrival:
             try:
-                latest_arrival_dt = make_aware(datetime.strptime(latest_arrival, "%Y-%m-%dT%H:%M"))
+                latest_arrival_dt = datetime.strptime(latest_arrival, "%Y-%m-%dT%H:%M")
             except ValueError:
                 print("Invalid latest arrival format:", latest_arrival)
 
@@ -215,12 +213,10 @@ def request_ride(request):
         if form.is_valid():
             ride = form.save(commit=False)
             ride.rider = request.user
-            ride.save()
-
-            # Calculate estimated arrival time
-            eta = get_estimated_time(ride.pickup_location, ride.dropoff_location)
-
-            messages.success(request, f'Ride request submitted successfully! Estimated travel time: {eta}')
+            
+            ride.required_arrival_time = ride.required_arrival_time
+            ride.save()  # 🚀 Assigns an ID
+            
             return redirect('rider_dashboard')
         else:
             messages.error(request, 'There was an error in your ride request. Please check your input.')
@@ -229,9 +225,9 @@ def request_ride(request):
         form = RideRequestForm()
 
     return render(request, 'rider/request_ride.html', {
-                 "form": form,
-                 "GOOGLE_MAPS_API_KEY": GOOGLE_MAPS_API_KEY
-        })
+        "form": form,
+        "GOOGLE_MAPS_API_KEY": GOOGLE_MAPS_API_KEY
+    })
 
 @login_required
 def edit_ride(request, ride_id):

@@ -9,6 +9,9 @@ from django.conf import settings
 from django.core.mail import get_connection
 import socket
 from utils.gmail_service import send_email
+import logging
+
+logger = logging.getLogger(__name__)
 
 @login_required
 def driver_dashboard(request):
@@ -70,27 +73,28 @@ def accept_ride(request, ride_id):
             # 发送邮件通知
             if ride.rider and ride.rider.email:
                 try:
-                    subject = "您的订单已被接单"
-                    message = f"""尊敬的用户您好,
-                    
-您的订单已被司机 {vehicle.driver.username} 接单。
-司机将尽快为您提供服务。
+                    logger.info("Attempting to send email...")
+                    subject = "Your Ride Has Been Accepted"
+                    message = f"""Dear User,
 
-订单信息：
-- 上车地点：{ride.pickup_location}
-- 目的地：{ride.dropoff_location}
-- 乘客数：{total_passengers}
+                    Your ride has been accepted by driver {vehicle.driver.username}.
+                    The driver will provide service shortly.
 
-如有任何问题，请及时联系我们的客服。
+                    Ride Details:
+                    - Pickup Location: {ride.pickup_location}
+                    - Destination: {ride.dropoff_location}
+                    - Number of Passengers: {total_passengers}
 
-祝您用车愉快！"""
+                    If you have any questions, please contact our customer service.
+
+                    Have a great ride!"""
 
                     if send_email(ride.rider.email, subject, message):
                         messages.success(request, 'Ride accepted and notification sent!')
                     else:
                         messages.success(request, 'Ride accepted but email notification failed.')
                 except Exception as e:
-                    print(f"Email error: {str(e)}")
+                    logger.error(f"Email error: {str(e)}")
                     messages.success(request, 'Ride accepted but email notification failed.')
             else:
                 messages.success(request, 'Ride accepted!')

@@ -171,3 +171,34 @@ print(f"EMAIL_HOST_PASSWORD length: {len(EMAIL_HOST_PASSWORD) if EMAIL_HOST_PASS
 # 在现有的调试信息之后添加
 print(f"Email backend: {EMAIL_BACKEND}")
 print(f"Default from email: {DEFAULT_FROM_EMAIL}")
+
+# 在现有配置后添加
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': 'debug.log',
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        '': {  # Root logger
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+        },
+    },
+}

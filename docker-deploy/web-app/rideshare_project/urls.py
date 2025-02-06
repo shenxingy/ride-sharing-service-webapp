@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import render
+from utils.views import oauth2_callback, start_oauth_flow
 
 def home(request):
     return render(request, 'home.html')
@@ -27,4 +28,6 @@ urlpatterns = [
     path('driver/', include('driver.urls')),
     path('rider/', include('rider.urls')),
     path('', home, name='home'),
+    path('oauth2callback/', oauth2_callback, name='oauth2_callback'),
+    path('start-oauth/', start_oauth_flow, name='start_oauth'),
 ]

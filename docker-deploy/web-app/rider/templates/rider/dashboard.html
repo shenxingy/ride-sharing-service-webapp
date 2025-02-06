@@ -6,7 +6,7 @@
     <h2>Rider Dashboard</h2>
 
     {# Show Request Ride button only if no open rides exist #}
-    {% if not open_rides %}
+    {% if not open_rides and not sharer_rides%}
     <div class="mb-4">
         <a href="{% url 'request_ride' %}" class="btn btn-primary">Request a Ride</a>
     </div>
@@ -37,7 +37,10 @@
 
             {% if ride.status == 'PENDING' %}
             <a href="{% url 'edit_ride' ride.id %}" class="btn btn-warning">Modify Ride</a>
-            <a href="{% url 'cancel_ride' ride.id %}" class="btn btn-danger">Cancel Ride</a>
+            <a href="{% url 'cancel_ride' ride.id %}" class="btn btn-danger" 
+            onclick="return confirm('Are you sure you want to cancel this ride?');">
+                Cancel Ride
+            </a>
             {% endif %}
         </div>
     </div>
@@ -75,7 +78,7 @@
     
     {% endif %}
 
-    {% if not open_rides %}
+    {% if not open_rides and not sharer_rides %}
         {# Search Open Rides #}
         <h3 class="mt-4">Search for Available Rides</h3>
         <form method="GET" action="{% url 'rider_dashboard' %}" class="mb-4">
@@ -165,5 +168,34 @@
     {% endif %}
 </div>
 
-<script async defer src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places&callback=initMap"></script>
+<script>
+    function initAutocomplete() {
+        let pickupInput = document.getElementById("id_sharer_pickup");
+        let dropoffInput = document.getElementById("id_sharer_dropoff");
+
+        let pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput);
+        let dropoffAutocomplete = new google.maps.places.Autocomplete(dropoffInput);
+        
+        // Bias results towards current location (optional)
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(position => {
+                let geolocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                let circle = new google.maps.Circle({
+                    center: geolocation,
+                    radius: position.coords.accuracy
+                });
+
+                pickupAutocomplete.setBounds(circle.getBounds());
+                dropoffAutocomplete.setBounds(circle.getBounds());
+            });
+        }
+    }
+</script>
+
+<script async defer
+    src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places&callback=initAutocomplete">
+</script>
 {% endblock %}

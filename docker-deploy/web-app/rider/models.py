@@ -32,8 +32,8 @@ class Ride(models.Model):
 class RideShare(models.Model):
     ride = models.ForeignKey(Ride, on_delete=models.CASCADE, related_name='shared_rides')
     rider = models.ForeignKey(User, on_delete=models.CASCADE)
-    pickup_location = models.CharField(max_length=255)
-    dropoff_location = models.CharField(max_length=255)
+    pickup_location = models.CharField(max_length=255, default='Unknown')
+    dropoff_location = models.CharField(max_length=255, default='Unknown')
     passenger_count = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
 

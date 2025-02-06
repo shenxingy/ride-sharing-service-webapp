@@ -7,6 +7,8 @@ from django.db.models import Q
 from django.conf import settings
 from django.utils.timezone import now
 from datetime import timedelta
+
+
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -131,108 +133,6 @@ def get_eta(request):
 
     return JsonResponse({"success": False, "error": "Invalid request method."}, status=405)
 
-
-@login_required
-def rider_dashboard(request):
-    """Display user's rides, allow searching, and process ride joining."""
-
-    # User's own rides
-    open_rides = Ride.objects.filter(
-        rider=request.user,
-        status__in=['PENDING', 'CONFIRMED']
-    ).order_by('-created_at')
-
-    closed_rides = Ride.objects.filter(
-        rider=request.user,
-        status__in=['COMPLETED', 'CANCELLED']
-    ).order_by('-created_at')
-
-    # Rides user has joined as a sharer
-    sharer_rides = RideShare.objects.filter(rider=request.user).select_related('ride')
-
-    search_results = []
-    search_performed = False
-
-    if request.method == "POST":
-        # Handle Joining a Ride directly from Dashboard
-        if "join_ride_id" in request.POST:
-            ride_id = request.POST.get("join_ride_id")
-            sharer_pickup = request.POST.get("sharer_pickup")
-            sharer_dropoff = request.POST.get("sharer_dropoff")
-            passenger_count = int(request.POST.get("passenger_count", 1))
-
-            ride = get_object_or_404(Ride, id=ride_id, status='PENDING', allow_sharing=True)
-
-            # Check if adding sharer would exceed max passengers
-            total_passengers = ride.passenger_count + sum(s.passenger_count for s in ride.shared_rides.all()) + passenger_count
-            MAX_PASSENGERS = 4  # Example limit
-
-            if total_passengers > MAX_PASSENGERS:
-                messages.error(request, "Ride is full. Cannot accommodate more passengers.")
-            else:
-                # Create RideShare entry
-                RideShare.objects.create(
-                    ride=ride,
-                    rider=request.user,
-                    passenger_count=passenger_count,
-                    pickup_location=sharer_pickup,
-                    dropoff_location=sharer_dropoff
-                )
-                ride.total_passengers = total_passengers
-                ride.save()
-                messages.success(request, "Successfully joined the ride!")
-
-            return redirect("rider_dashboard")  # Redirect to refresh the page
-
-    # Handle Searching for Rides
-    if request.method == "GET" and "search" in request.GET:
-        sharer_pickup = request.GET.get("sharer_pickup", "").strip()
-        sharer_dropoff = request.GET.get("sharer_dropoff", "").strip()
-        earliest_arrival = request.GET.get("earliest_arrival")
-        latest_arrival = request.GET.get("latest_arrival")
-        passenger_count = request.GET.get("passenger_count")
-
-        # Filter rides based on criteria
-        query = Q(status="PENDING", allow_sharing=True)
-        candidate_rides = Ride.objects.filter(query).exclude(rider=request.user).order_by('required_arrival_time')
-
-        # Further refine results using route optimization
-        valid_rides = []
-        current_time = now()
-        for ride in candidate_rides:
-            route_info = get_optimized_route(
-                requester_pickup=ride.pickup_location,
-                requester_dropoff=ride.dropoff_location,
-                sharer_pickup=sharer_pickup,
-                sharer_dropoff=sharer_dropoff,
-            )
-
-            if route_info:
-                requester_eta = current_time + timedelta(minutes=route_info["requester_duration"])
-                sharer_eta = current_time + timedelta(minutes=route_info["sharer_duration"])
-
-                # Convert settings.TIME_ZONE (str) to a tzinfo object
-                timezone = pytz.timezone(settings.TIME_ZONE)
-                latest_arrival_dt = timezone.localize(datetime.strptime(latest_arrival, "%Y-%m-%dT%H:%M"))
-                earliest_arrival_dt = timezone.localize(datetime.strptime(earliest_arrival, "%Y-%m-%dT%H:%M"))
-
-                # Ensure Sharer and Requester can arrive on time
-                if requester_eta <= ride.required_arrival_time and (earliest_arrival_dt <= sharer_eta <= latest_arrival_dt):
-                    valid_rides.append(ride)
-
-        search_results = valid_rides
-        search_performed = True
-
-    return render(request, "rider/dashboard.html", {
-        "open_rides": open_rides,
-        "sharer_rides": sharer_rides,
-        "closed_rides": closed_rides,
-        "search_results": search_results,
-        "search_performed": search_performed,
-        "GOOGLE_MAPS_API_KEY": GOOGLE_MAPS_API_KEY,
-    })
-
-    
 @login_required
 def request_ride(request):
     """Handles ride requests and provides an estimated arrival time."""
@@ -275,42 +175,110 @@ def edit_ride(request, ride_id):
 
     return render(request, 'rider/edit_ride.html', {
         'form': form,
-        'ride': ride,
+        'ride': ride, 
         "GOOGLE_MAPS_API_KEY": GOOGLE_MAPS_API_KEY  # Pass API key for map
     })
-
+    
 @login_required
-def join_ride(request, ride_id):
-    """Allows a user to join an existing ride with passenger limits."""
-    ride = get_object_or_404(Ride, id=ride_id, status='PENDING', allow_sharing=True)
+def rider_dashboard(request):
+    """Display user's rides, allow searching, joining, and leaving rides."""
+    open_rides = Ride.objects.filter(
+        rider=request.user, status__in=['PENDING', 'CONFIRMED']
+    ).order_by('-created_at')
 
-    if request.method == 'POST':
-        form = JoinRideForm(request.POST)
-        if form.is_valid():
-            share = form.save(commit=False)
-            share.ride = ride
-            share.rider = request.user
+    closed_rides = Ride.objects.filter(
+        rider=request.user, status__in=['COMPLETED', 'CANCELLED']
+    ).order_by('-created_at')
 
-            # Calculate total passengers after joining
-            total_passengers = ride.passenger_count + sum(
-                share.passenger_count for share in ride.shared_rides.all()
-            ) + share.passenger_count
+    # Rides user has joined as a sharer
+    sharer_rides = RideShare.objects.filter(rider=request.user).select_related('ride')
 
-            MAX_PASSENGERS = 4  # Set a max limit manually if no vehicle model exists
-            if total_passengers > MAX_PASSENGERS:
-                messages.error(request, "Ride is full. Cannot accommodate more passengers.")
-                return redirect('rider_dashboard')
+    search_results = []
+    search_performed = False
 
-            ride.total_passengers = total_passengers
+    if request.method == "POST":
+        if "join_ride_id" in request.POST:
+            ride_id = request.POST.get("join_ride_id")
+            sharer_pickup = request.POST.get("sharer_pickup")
+            sharer_dropoff = request.POST.get("sharer_dropoff")
+            passenger_count = int(request.POST.get("passenger_count", 1))
+
+            ride = get_object_or_404(Ride, id=ride_id, status='PENDING', allow_sharing=True)
+
+            # Create RideShare entry
+            RideShare.objects.create(
+                ride=ride,
+                rider=request.user,
+                passenger_count=passenger_count,
+                pickup_location=sharer_pickup,
+                dropoff_location=sharer_dropoff
+            )
+
+            # Update total_passengers (just for record-keeping)
+            ride.total_passengers += passenger_count
             ride.save()
-            share.save()
 
-            messages.success(request, 'Successfully joined the ride!')
-            return redirect('rider_dashboard')
-        else:
-            messages.error(request, 'Invalid input. Please check your passenger count.')
+            messages.success(request, "Successfully joined the ride!")
+            return redirect("rider_dashboard")
 
-    else:
-        form = JoinRideForm()
+        elif "leave_ride_id" in request.POST:
+            share_id = request.POST.get("leave_ride_id")
+            ride_share = get_object_or_404(RideShare, id=share_id, rider=request.user)
+            ride = ride_share.ride
 
-    return render(request, 'rider/dashboard.html')
+            # Update total_passengers (just for record-keeping)
+            ride.total_passengers -= ride_share.passenger_count
+            ride.save()
+
+            # Remove the RideShare entry
+            ride_share.delete()
+
+            messages.success(request, "Successfully left the ride.")
+            return redirect("rider_dashboard")
+
+    # Handle Searching for Rides
+    if request.method == "GET" and "search" in request.GET:
+        sharer_pickup = request.GET.get("sharer_pickup", "").strip()
+        sharer_dropoff = request.GET.get("sharer_dropoff", "").strip()
+        earliest_arrival = request.GET.get("earliest_arrival")
+        latest_arrival = request.GET.get("latest_arrival")
+        passenger_count = request.GET.get("passenger_count")
+
+        query = Q(status="PENDING", allow_sharing=True)
+        candidate_rides = Ride.objects.filter(query).exclude(rider=request.user).order_by('required_arrival_time')
+
+        valid_rides = []
+        for ride in candidate_rides:
+            route_info = get_optimized_route(
+                requester_pickup=ride.pickup_location,
+                requester_dropoff=ride.dropoff_location,
+                sharer_pickup=sharer_pickup,
+                sharer_dropoff=sharer_dropoff,
+            )
+
+            if route_info:
+                valid_rides.append(ride)
+
+        search_results = valid_rides
+        search_performed = True
+
+    return render(request, "rider/dashboard.html", {
+        "open_rides": open_rides,
+        "sharer_rides": sharer_rides,
+        "closed_rides": closed_rides,
+        "search_results": search_results,
+        "search_performed": search_performed,
+        "GOOGLE_MAPS_API_KEY": GOOGLE_MAPS_API_KEY,
+    })
+    
+@login_required
+def cancel_ride(request, ride_id):
+    """Allow the ride owner to cancel a pending ride."""
+    ride = get_object_or_404(Ride, id=ride_id, rider=request.user, status='PENDING')
+
+    # Mark the ride as cancelled
+    ride.status = 'CANCELLED'
+    ride.save()
+
+    messages.success(request, "Ride has been cancelled successfully.")
+    return redirect('rider_dashboard')

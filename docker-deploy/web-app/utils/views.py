@@ -16,7 +16,7 @@ def start_oauth_flow(request):
     request.session['oauth_state'] = state
     return redirect(authorization_url)
 
-def oauth2_callback(request):wo
+def oauth2_callback(request):
     try:
         logger.info("OAuth callback received")
         

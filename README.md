@@ -22,6 +22,14 @@
 
 #### Must Do
 
+- [ ] 修改订单的时候看到的内容需要和request差不多
+- [ ] 我们需要给request增加id
+- [ ] request可以取消
+
+### Feb 3
+
+#### Must Do
+
 - [ ] The driver cannot go to the rider mode if he/she is carring a passenger; vise versa.
 - [ ] 点开所有的订单可以看到详细信息(司机，sharer等)
 - [ ] 一单只能有一个sharer（还没有做这个限制）

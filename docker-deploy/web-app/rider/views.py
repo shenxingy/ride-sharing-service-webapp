@@ -1,11 +1,14 @@
 import os
 import json
+import pytz
 import requests
 from datetime import datetime
 from django.db.models import Q
 from django.conf import settings
-from django.utils.timezone import now, make_aware
+from django.utils.timezone import now
 from datetime import timedelta
+
+
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -59,8 +62,6 @@ def get_optimized_route(requester_pickup, requester_dropoff, sharer_pickup, shar
         "key": GOOGLE_MAPS_API_KEY
     }
     
-
-
     response = requests.get(url, params=params)
     data = response.json()
 
@@ -132,81 +133,6 @@ def get_eta(request):
 
     return JsonResponse({"success": False, "error": "Invalid request method."}, status=405)
 
-
-@login_required
-def rider_dashboard(request):
-    """Display user's rides and allow searching for open rides."""
-    open_rides = Ride.objects.filter(
-        rider=request.user,
-        status__in=['PENDING', 'CONFIRMED']
-    ).order_by('-created_at')
-
-    closed_rides = Ride.objects.filter(
-        rider=request.user,
-        status__in=['COMPLETED', 'CANCELLED']
-    ).order_by('-created_at')
-
-    search_results = []
-    search_performed = False
-    print("Candidate Rides:", Ride.objects.filter(status="PENDING").exclude(rider=request.user))
-    
-    if request.method == "GET" and "search" in request.GET:
-        # 获取搜索参数
-        sharer_pickup = request.GET.get("sharer_pickup", "").strip()
-        sharer_dropoff = request.GET.get("sharer_dropoff", "").strip()
-        earliest_arrival = request.GET.get("earliest_arrival")
-        latest_arrival = request.GET.get("latest_arrival")
-        passenger_count = request.GET.get("passenger_count")
-        if earliest_arrival:
-            try:
-                earliest_arrival_dt = make_aware(datetime.strptime(earliest_arrival, "%Y-%m-%dT%H:%M"))
-            except ValueError:
-                print("Invalid earliest arrival format:", earliest_arrival)
-
-        if latest_arrival:
-            try:
-                latest_arrival_dt = make_aware(datetime.strptime(latest_arrival, "%Y-%m-%dT%H:%M"))
-            except ValueError:
-                print("Invalid latest arrival format:", latest_arrival)
-
-        # 构建基本查询（仅搜索 "PENDING" 状态的 Ride）
-        query = Q(status="PENDING")
-
-
-        # 获取候选行程
-        candidate_rides = Ride.objects.filter(query).exclude(rider=request.user).order_by('required_arrival_time')
-
-        # 进一步优化匹配
-        valid_rides = []
-        current_time = now()
-        for ride in candidate_rides:
-            # 计算共享路线
-            route_info = get_optimized_route(
-                requester_pickup=ride.pickup_location,
-                requester_dropoff=ride.dropoff_location,
-                sharer_pickup=sharer_pickup,
-                sharer_dropoff=sharer_dropoff,
-            )
-
-            if route_info:
-                requester_eta = current_time + timedelta(minutes=route_info["requester_duration"])
-                sharer_eta = current_time + timedelta(minutes=route_info["sharer_duration"])
-
-                # 确保 Sharer 和 Requester 都能按时到达
-                if requester_eta <= ride.required_arrival_time and (sharer_eta <= latest_arrival_dt and sharer_eta >= earliest_arrival_dt):
-                    valid_rides.append(ride)
-
-        search_results = valid_rides
-        search_performed = True
-
-    return render(request, 'rider/dashboard.html', {
-        'open_rides': open_rides,
-        'closed_rides': closed_rides,
-        'search_results': search_results,
-        'search_performed': search_performed,
-         "GOOGLE_MAPS_API_KEY": GOOGLE_MAPS_API_KEY
-    })
-    
 @login_required
 def request_ride(request):
     """Handles ride requests and provides an estimated arrival time."""
@@ -215,12 +141,10 @@ def request_ride(request):
         if form.is_valid():
             ride = form.save(commit=False)
             ride.rider = request.user
-            ride.save()
-
-            # Calculate estimated arrival time
-            eta = get_estimated_time(ride.pickup_location, ride.dropoff_location)
-
-            messages.success(request, f'Ride request submitted successfully! Estimated travel time: {eta}')
+            
+            ride.required_arrival_time = ride.required_arrival_time
+            ride.save()  # 🚀 Assigns an ID
+            
             return redirect('rider_dashboard')
         else:
             messages.error(request, 'There was an error in your ride request. Please check your input.')
@@ -229,9 +153,9 @@ def request_ride(request):
         form = RideRequestForm()
 
     return render(request, 'rider/request_ride.html', {
-                 "form": form,
-                 "GOOGLE_MAPS_API_KEY": GOOGLE_MAPS_API_KEY
-        })
+        "form": form,
+        "GOOGLE_MAPS_API_KEY": GOOGLE_MAPS_API_KEY
+    })
 
 @login_required
 def edit_ride(request, ride_id):
@@ -251,42 +175,110 @@ def edit_ride(request, ride_id):
 
     return render(request, 'rider/edit_ride.html', {
         'form': form,
-        'ride': ride,
+        'ride': ride, 
         "GOOGLE_MAPS_API_KEY": GOOGLE_MAPS_API_KEY  # Pass API key for map
     })
-
+    
 @login_required
-def join_ride(request, ride_id):
-    """Allows a user to join an existing ride with passenger limits."""
-    ride = get_object_or_404(Ride, id=ride_id, status='PENDING', allow_sharing=True)
+def rider_dashboard(request):
+    """Display user's rides, allow searching, joining, and leaving rides."""
+    open_rides = Ride.objects.filter(
+        rider=request.user, status__in=['PENDING', 'CONFIRMED']
+    ).order_by('-created_at')
 
-    if request.method == 'POST':
-        form = JoinRideForm(request.POST)
-        if form.is_valid():
-            share = form.save(commit=False)
-            share.ride = ride
-            share.rider = request.user
+    closed_rides = Ride.objects.filter(
+        rider=request.user, status__in=['COMPLETED', 'CANCELLED']
+    ).order_by('-created_at')
 
-            # Calculate total passengers after joining
-            total_passengers = ride.passenger_count + sum(
-                share.passenger_count for share in ride.shared_rides.all()
-            ) + share.passenger_count
+    # Rides user has joined as a sharer
+    sharer_rides = RideShare.objects.filter(rider=request.user).select_related('ride')
 
-            MAX_PASSENGERS = 4  # Set a max limit manually if no vehicle model exists
-            if total_passengers > MAX_PASSENGERS:
-                messages.error(request, "Ride is full. Cannot accommodate more passengers.")
-                return redirect('rider_dashboard')
+    search_results = []
+    search_performed = False
 
-            ride.total_passengers = total_passengers
+    if request.method == "POST":
+        if "join_ride_id" in request.POST:
+            ride_id = request.POST.get("join_ride_id")
+            sharer_pickup = request.POST.get("sharer_pickup")
+            sharer_dropoff = request.POST.get("sharer_dropoff")
+            passenger_count = int(request.POST.get("passenger_count", 1))
+
+            ride = get_object_or_404(Ride, id=ride_id, status='PENDING', allow_sharing=True)
+
+            # Create RideShare entry
+            RideShare.objects.create(
+                ride=ride,
+                rider=request.user,
+                passenger_count=passenger_count,
+                pickup_location=sharer_pickup,
+                dropoff_location=sharer_dropoff
+            )
+
+            # Update total_passengers (just for record-keeping)
+            ride.total_passengers += passenger_count
             ride.save()
-            share.save()
 
-            messages.success(request, 'Successfully joined the ride!')
-            return redirect('rider_dashboard')
-        else:
-            messages.error(request, 'Invalid input. Please check your passenger count.')
+            messages.success(request, "Successfully joined the ride!")
+            return redirect("rider_dashboard")
 
-    else:
-        form = JoinRideForm()
+        elif "leave_ride_id" in request.POST:
+            share_id = request.POST.get("leave_ride_id")
+            ride_share = get_object_or_404(RideShare, id=share_id, rider=request.user)
+            ride = ride_share.ride
 
-    return render(request, 'rider/join_ride.html', {'form': form, 'ride': ride})
+            # Update total_passengers (just for record-keeping)
+            ride.total_passengers -= ride_share.passenger_count
+            ride.save()
+
+            # Remove the RideShare entry
+            ride_share.delete()
+
+            messages.success(request, "Successfully left the ride.")
+            return redirect("rider_dashboard")
+
+    # Handle Searching for Rides
+    if request.method == "GET" and "search" in request.GET:
+        sharer_pickup = request.GET.get("sharer_pickup", "").strip()
+        sharer_dropoff = request.GET.get("sharer_dropoff", "").strip()
+        earliest_arrival = request.GET.get("earliest_arrival")
+        latest_arrival = request.GET.get("latest_arrival")
+        passenger_count = request.GET.get("passenger_count")
+
+        query = Q(status="PENDING", allow_sharing=True)
+        candidate_rides = Ride.objects.filter(query).exclude(rider=request.user).order_by('required_arrival_time')
+
+        valid_rides = []
+        for ride in candidate_rides:
+            route_info = get_optimized_route(
+                requester_pickup=ride.pickup_location,
+                requester_dropoff=ride.dropoff_location,
+                sharer_pickup=sharer_pickup,
+                sharer_dropoff=sharer_dropoff,
+            )
+
+            if route_info:
+                valid_rides.append(ride)
+
+        search_results = valid_rides
+        search_performed = True
+
+    return render(request, "rider/dashboard.html", {
+        "open_rides": open_rides,
+        "sharer_rides": sharer_rides,
+        "closed_rides": closed_rides,
+        "search_results": search_results,
+        "search_performed": search_performed,
+        "GOOGLE_MAPS_API_KEY": GOOGLE_MAPS_API_KEY,
+    })
+    
+@login_required
+def cancel_ride(request, ride_id):
+    """Allow the ride owner to cancel a pending ride."""
+    ride = get_object_or_404(Ride, id=ride_id, rider=request.user, status='PENDING')
+
+    # Mark the ride as cancelled
+    ride.status = 'CANCELLED'
+    ride.save()
+
+    messages.success(request, "Ride has been cancelled successfully.")
+    return redirect('rider_dashboard')

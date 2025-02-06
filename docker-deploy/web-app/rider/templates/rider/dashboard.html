@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Rider Dashboard</h2>
+
+    {# Show Request Ride button only if no open rides exist #}
+    {% if not open_rides and not sharer_rides%}
+    <div class="mb-4">
+        <a href="{% url 'request_ride' %}" class="btn btn-primary">Request a Ride</a>
+    </div>
+    {% endif %}
+
+    {% if open_rides or sharer_rides %}
+    <h3 class="mt-4">Your Open Rides</h3>
+    
+    {# Rides Created by the User (Requester) #}
+    {% for ride in open_rides %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">{{ ride.pickup_location }} → {{ ride.dropoff_location }}</h5>
+            <p class="card-text">
+                Status:
+                {% if ride.status == 'PENDING' %}
+                <span class="badge bg-warning text-dark">Pending</span>
+                {% elif ride.status == 'CONFIRMED' %}
+                <span class="badge bg-info text-dark">Confirmed</span>
+                {% endif %}
+                <br>
+                Passengers: {{ ride.passenger_count }}<br>
+                {% if ride.allow_sharing %}
+                Total Passengers: {{ ride.total_passengers }}<br>
+                {% endif %}
+                Requested: {{ ride.created_at|date:"M d, Y H:i" }}
+            </p>
+
+            {% if ride.status == 'PENDING' %}
+            <a href="{% url 'edit_ride' ride.id %}" class="btn btn-warning">Modify Ride</a>
+            <a href="{% url 'cancel_ride' ride.id %}" class="btn btn-danger" 
+            onclick="return confirm('Are you sure you want to cancel this ride?');">
+                Cancel Ride
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    
+    {# Rides Joined as a Sharer #}
+    {% for share in sharer_rides %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">{{ share.ride.pickup_location }} → {{ share.ride.dropoff_location }}</h5>
+            <p class="card-text">
+                Status:
+                {% if share.ride.status == 'PENDING' %}
+                <span class="badge bg-warning text-dark">Pending</span>
+                {% elif share.ride.status == 'CONFIRMED' %}
+                <span class="badge bg-info text-dark">Confirmed</span>
+                {% endif %}
+                <br>
+                Your Pickup: {{ share.pickup_location }}<br>
+                Your Dropoff: {{ share.dropoff_location }}<br>
+                Passengers in Ride: {{ share.ride.total_passengers }}/{{ share.ride.passenger_count }}<br>
+                Requested: {{ share.ride.created_at|date:"M d, Y H:i" }}
+            </p>
+
+            {% if share.ride.status == 'PENDING' %}
+            <form method="POST" action="{% url 'rider_dashboard' %}">
+                {% csrf_token %}
+                <input type="hidden" name="leave_ride_id" value="{{ share.id }}">
+                <button type="submit" class="btn btn-danger">Leave Ride</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    
+    {% endif %}
+
+    {% if not open_rides and not sharer_rides %}
+        {# Search Open Rides #}
+        <h3 class="mt-4">Search for Available Rides</h3>
+        <form method="GET" action="{% url 'rider_dashboard' %}" class="mb-4">
+            <input type="hidden" name="search" value="1">
+            <div class="row">
+                <div class="col-md-3">
+                    <label>Sharer Pickup</label>
+                    <input type="text" id="id_sharer_pickup" name="sharer_pickup" class="form-control" placeholder="Enter pickup location">
+                </div>
+                <div class="col-md-3">
+                    <label>Sharer Dropoff</label>
+                    <input type="text" id="id_sharer_dropoff" name="sharer_dropoff" class="form-control" placeholder="Enter dropoff location">
+                </div>
+                <div class="col-md-3">
+                    <label>Earliest Arrival Time</label>
+                    <input type="datetime-local" name="earliest_arrival" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label>Latest Arrival Time</label>
+                    <input type="datetime-local" name="latest_arrival" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    <label>Passengers</label>
+                    <input type="number" name="passenger_count" class="form-control" min="1">
+                </div>
+                <div class="col-md-1 align-self-end">
+                    <button type="submit" class="btn btn-info w-100">Search</button>
+                </div>
+            </div>
+        </form>
+
+        {# Display Search Results with Join Ride Form #}
+        {% if search_performed %}
+            <h4>Search Results</h4>
+            {% if search_results %}
+                {% for ride in search_results %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ ride.pickup_location }} → {{ ride.dropoff_location }}</h5>
+                        <p class="card-text">
+                            Arrival Time: {{ ride.required_arrival_time|date:"M d, Y H:i" }}<br>
+                            Passengers: {{ ride.total_passengers }}/{{ ride.passenger_count }}<br>
+                        </p>
+                        <form method="POST" action="{% url 'rider_dashboard' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="join_ride_id" value="{{ ride.id }}">
+                            <input type="hidden" name="sharer_pickup" value="{{ request.GET.sharer_pickup }}">
+                            <input type="hidden" name="sharer_dropoff" value="{{ request.GET.sharer_dropoff }}">
+                            <input type="hidden" name="passenger_count" value="{{ request.GET.passenger_count }}">
+                            <button type="submit" class="btn btn-success mt-2">Join Ride</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>No rides found matching your criteria.</p>
+            {% endif %}
+        {% endif %}
+    {% endif %}
+
+    {# Ride History Section #}
+    <h3 class="mt-4">Ride History</h3>
+    {% if closed_rides %}
+    {% for ride in closed_rides %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">{{ ride.pickup_location }} → {{ ride.dropoff_location }}</h5>
+            <p class="card-text">
+                Status:
+                {% if ride.status == 'COMPLETED' %}
+                <span class="badge bg-success">Completed</span>
+                {% elif ride.status == 'CANCELLED' %}
+                <span class="badge bg-danger">Cancelled</span>
+                {% endif %}
+                <br>
+                Passengers: {{ ride.passenger_count }}<br>
+                {% if ride.allow_sharing %}
+                Total Passengers: {{ ride.total_passengers }}<br>
+                {% endif %}
+                Requested: {{ ride.created_at|date:"M d, Y H:i" }}
+            </p>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p>No ride history yet.</p>
+    {% endif %}
+</div>
+
+<script>
+    function initAutocomplete() {
+        let pickupInput = document.getElementById("id_sharer_pickup");
+        let dropoffInput = document.getElementById("id_sharer_dropoff");
+
+        let pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput);
+        let dropoffAutocomplete = new google.maps.places.Autocomplete(dropoffInput);
+        
+        // Bias results towards current location (optional)
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(position => {
+                let geolocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                let circle = new google.maps.Circle({
+                    center: geolocation,
+                    radius: position.coords.accuracy
+                });
+
+                pickupAutocomplete.setBounds(circle.getBounds());
+                dropoffAutocomplete.setBounds(circle.getBounds());
+            });
+        }
+    }
+</script>
+
+<script async defer
+    src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places&callback=initAutocomplete">
+</script>
+{% endblock %}

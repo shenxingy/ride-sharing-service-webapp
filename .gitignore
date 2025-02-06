@@ -8,10 +8,50 @@ __pycache__/
 
 # 如果使用了 virtualenv，也可以忽略
 venv/
-**/.env
+.env/
 
-# 忽略所有 .DS_Store 文件
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.env/
+venv/
+ENV/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+
+# IDE/Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
+Thumbs.db
+*.bak
 
-# 忽略所有 00* 文件
-**/migrations/00*
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Database
+*.sql
+*.sqlite3
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Static files
+/static/
+/staticfiles/

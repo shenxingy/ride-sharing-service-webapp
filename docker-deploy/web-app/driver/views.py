@@ -55,3 +55,18 @@ def accept_ride(request, ride_id):
         messages.error(request, 'You need to register a vehicle first!')
     
     return redirect('driver_dashboard')
+
+@login_required
+def finish_ride(request, ride_id):
+    try:
+        vehicle = Vehicle.objects.get(driver=request.user)
+        ride = get_object_or_404(Ride, id=ride_id, status='CONFIRMED', vehicle=vehicle)
+        ride.status = 'COMPLETED'
+        ride.save()
+        messages.success(request, 'Ride completed successfully!')
+    except Vehicle.DoesNotExist:
+        messages.error(request, 'Vehicle not found!')
+    except Ride.DoesNotExist:
+        messages.error(request, 'Ride not found!')
+    
+    return redirect('driver_dashboard')

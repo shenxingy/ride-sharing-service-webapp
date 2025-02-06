@@ -26,6 +26,12 @@
                         Passengers: {{ ride.passenger_count }}<br>
                         Requested: {{ ride.created_at|date:"M d, Y H:i" }}
                     </p>
+                    {% if ride.status == 'CONFIRMED' %}
+                    <form method="post" action="{% url 'finish_ride' ride.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">Complete Ride</button>
+                    </form>
+                    {% endif %}
                 </div>
             </div>
         {% endfor %}

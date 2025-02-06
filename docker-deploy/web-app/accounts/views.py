@@ -9,9 +9,19 @@ def register(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            login(request, user)
-            return redirect('/')
+            # 创建用户但不立即保存
+            user = form.save(commit=False)
+            # 获取并设置邮箱
+            email = request.POST.get('email')
+            if email:
+                user.email = email
+                user.save()
+                # 登录用户
+                login(request, user)
+                messages.success(request, 'Registration successful!')
+                return redirect('home')
+            else:
+                messages.error(request, 'Email is required!')
     else:
         form = UserCreationForm()
     return render(request, 'accounts/register.html', {'form': form})

@@ -55,7 +55,3 @@ docker-compose.override.yml
 # Static files
 /static/
 /staticfiles/
-
-# Google API credentials
-credentials.json
-token.json

@@ -187,14 +187,19 @@ def edit_ride(request, ride_id):
     
 @login_required
 def cancel_ride(request, ride_id):
-    """Allow the ride owner to cancel a pending ride."""
+    """Allow the ride owner to cancel a pending ride and auto-cancel all sharers."""
     ride = get_object_or_404(Ride, id=ride_id, rider=request.user, status='PENDING')
 
     # Mark the ride as cancelled
     ride.status = 'CANCELLED'
     ride.save()
 
-    messages.success(request, "Ride has been cancelled successfully.")
+    # Cancel all associated RideShare entries
+    for share in ride.shared_rides.all():
+        share.status = 'CANCELLED'
+        share.save()
+
+    messages.success(request, "Ride and all shared bookings have been cancelled successfully.")
     return redirect('rider_dashboard')
 
 @login_required

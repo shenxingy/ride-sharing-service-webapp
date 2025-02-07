@@ -9,6 +9,47 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <style>
+        /* 苹果风格字体设置 */
+        @font-face {
+            font-family: 'SF Pro Display';
+            src: local('-apple-system'), local('BlinkMacSystemFont');
+            font-weight: 400;
+        }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 
+                        'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 
+                        'Helvetica Neue', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-feature-settings: "kern";
+            text-rendering: optimizeLegibility;
+        }
+
+        /* 标题字体优化 */
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 500;
+            letter-spacing: -0.02em;
+        }
+
+        /* 卡片标题优化 */
+        .card-title {
+            font-weight: 500;
+            letter-spacing: -0.01em;
+        }
+
+        /* 按钮文字优化 */
+        .btn {
+            font-weight: 500;
+            letter-spacing: -0.01em;
+        }
+
+        /* 导航栏文字优化 */
+        .navbar-brand, .nav-link {
+            font-weight: 500;
+            letter-spacing: -0.01em;
+        }
+
         [data-bs-theme="dark"] {
             color-scheme: dark;
         }
@@ -39,12 +80,28 @@
         }
 
         [data-bs-theme="dark"] .navbar-brand,
-        [data-bs-theme="dark"] .nav-link {
+        [data-bs-theme="dark"] .nav-link,
+        [data-bs-theme="dark"] .dropdown-toggle {
             color: rgba(255, 255, 255, 0.9) !important;
         }
 
-        [data-bs-theme="dark"] .nav-link:hover {
+        [data-bs-theme="dark"] .nav-link:hover,
+        [data-bs-theme="dark"] .dropdown-toggle:hover {
             color: #fff !important;
+        }
+
+        [data-bs-theme="dark"] .dropdown-menu {
+            background-color: #212529;
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        [data-bs-theme="dark"] .dropdown-item {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        [data-bs-theme="dark"] .dropdown-item:hover {
+            background-color: #343a40;
+            color: #fff;
         }
 
         [data-bs-theme="dark"] .navbar-toggler {
@@ -59,7 +116,7 @@
 <body>
     <nav class="navbar navbar-expand-lg">
         <div class="container">
-            <a class="navbar-brand" href="/">Rideshare</a>
+            <a class="navbar-brand" href="/"><i class="fas fa-car me-2"></i>Rideshare</a>
             <div class="d-flex align-items-center">
                 <button class="btn btn-link nav-link px-3 me-2" id="theme-toggle">
                     <i class="fas fa-sun theme-icon-light"></i>
@@ -73,28 +130,42 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     {% if user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'rider_dashboard' %}">
-                                <i class="fas fa-user me-1"></i>Rider Mode
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'driver_dashboard' %}">
-                                <i class="fas fa-taxi me-1"></i>Driver Mode
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'accounts:logout' %}">
-                                <i class="fas fa-sign-out-alt me-1"></i>Logout
-                            </a>
-                        </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle me-1"></i>
+                            {{ user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'accounts:profile' %}">
+                                    <i class="fas fa-id-card me-2"></i>Edit Profile
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'accounts:change_password' %}">
+                                    <i class="fas fa-key me-2"></i>Change Password
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="{% url 'accounts:logout' %}">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
                     {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'accounts:login' %}">Login</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'accounts:register' %}">Register</a>
-                        </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'accounts:login' %}">
+                            <i class="fas fa-sign-in-alt me-1"></i>Login
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'accounts:register' %}">
+                            <i class="fas fa-user-plus me-1"></i>Register
+                        </a>
+                    </li>
                     {% endif %}
                 </ul>
             </div>

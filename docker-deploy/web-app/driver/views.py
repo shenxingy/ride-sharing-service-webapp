@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Vehicle
-from .forms import VehicleRegistrationForm
+from .forms import VehicleRegistrationForm, VehicleUpdateForm
 from django.contrib import messages
 from rider.models import Ride
 from django.core.mail import send_mail
@@ -122,3 +122,19 @@ def finish_ride(request, ride_id):
         messages.error(request, 'Ride not found!')
     
     return redirect('driver_dashboard')
+
+@login_required
+def update_vehicle(request):
+    try:
+        vehicle = Vehicle.objects.get(driver=request.user)
+        if request.method == 'POST':
+            form = VehicleUpdateForm(request.POST, instance=vehicle)
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'Vehicle information updated successfully!')
+                return redirect('driver_dashboard')
+        else:
+            form = VehicleUpdateForm(instance=vehicle)
+        return render(request, 'driver/update_vehicle.html', {'form': form})
+    except Vehicle.DoesNotExist:
+        return redirect('vehicle_registration')

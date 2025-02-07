@@ -114,7 +114,7 @@ def accept_ride(request, ride_id):
 def finish_ride(request, ride_id):
     try:
         vehicle = Driver.objects.get(driver=request.user)
-        ride = get_object_or_404(Ride, id=ride_id, status='CONFIRMED', vehicle=vehicle)
+        ride = get_object_or_404(Ride, id=ride_id, status='CONFIRMED', driver=vehicle)
         ride.status = 'COMPLETED'
         ride.save()
         messages.success(request, 'Ride completed successfully!')

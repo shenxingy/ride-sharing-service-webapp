@@ -2,6 +2,12 @@
 
 ## What's new
 
+### 2025.02.07
+
+- [ ] Email registration
+- [ ] store the email in the database
+- [ ] send email for ride accepted
+
 ### 2025.02.03
 
 - 用户的request后只能修改订单以及看到历史订单，不能再发起新的订单

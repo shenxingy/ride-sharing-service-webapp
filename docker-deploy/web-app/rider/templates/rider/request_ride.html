@@ -28,6 +28,7 @@
                 <div class="card-body">
                     <form method="post" id="rideRequestForm">
                         {% csrf_token %}
+                        <input type="hidden" id="estimated_travel_time" name="estimated_travel_time" value="">
                         
                         <div class="form-group mb-3">
                             <label for="id_pickup_location" class="form-label">
@@ -48,11 +49,6 @@
                         <button type="button" class="btn btn-info mb-3 w-100" id="getETAButton">
                             <i class="fas fa-clock me-1"></i>Calculate Travel Time
                         </button>
-
-                        <div id="etaDisplay" class="alert alert-info mb-3" style="display: none;">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Estimated Travel Time:</strong> <span id="etaValue"></span>
-                        </div>
 
                         <div class="form-group mb-3">
                             <label for="required_arrival_time" class="form-label">
@@ -91,10 +87,13 @@
                             </label>
                         </div>
 
-                        <div class="d-grid gap-2">
+                        <div class="d-flex gap-2 mt-3">
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-paper-plane me-1"></i>Submit Request
+                                <i class="fas fa-save me-1"></i>Save Changes
                             </button>
+                            <a href="{% url 'rider_dashboard' %}" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
                         </div>
                     </form>
                 </div>
@@ -157,6 +156,11 @@
             return;
         }
 
+        // Show loading state
+        const button = document.getElementById("getETAButton");
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Calculating...';
+
         // Fetch ETA from Backend
         fetch("{% url 'get_eta' %}", {
             method: "POST",
@@ -166,18 +170,31 @@
             },
             body: JSON.stringify({ "pickup_location": pickup, "dropoff_location": dropoff })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log("ETA Response:", data);
+            
             if (data.success) {
-                document.getElementById("etaValue").innerText = data.estimated_time;
-                document.getElementById("etaDisplay").style.display = "block";
-
-                // Extract minutes from "X mins" string
-                let match = data.estimated_time.match(/(\d+)\s*min/);
-                estimatedMinutes = match ? parseInt(match[1]) : 5; // Default 5 minutes if parsing fails
+                const estimatedTravelTime = document.getElementById("estimated_travel_time");
                 
-                // Store in hidden field
-                document.getElementById("estimated_travel_time").value = estimatedMinutes;
+                if (!estimatedTravelTime) {
+                    throw new Error("Required elements not found");
+                }
+
+                // Update button with the estimated time
+                button.innerHTML = `<i class="fas fa-clock me-1"></i>Est. Time: ${data.estimated_time}`;
+                button.classList.remove('btn-info');
+                button.classList.add('btn-success');
+
+                // Extract minutes and update hidden field
+                let match = data.estimated_time.match(/(\d+)\s*min/);
+                estimatedMinutes = match ? parseInt(match[1]) : 5;
+                estimatedTravelTime.value = estimatedMinutes;
 
                 // Update required arrival time
                 setMinArrivalTime();
@@ -185,10 +202,20 @@
                 // Show route on the map
                 calculateRoute(pickup, dropoff);
             } else {
-                alert("Could not retrieve ETA. Please check your input.");
+                throw new Error(data.error || "Could not retrieve ETA");
             }
         })
-        .catch(error => console.error("Error:", error));
+        .catch(error => {
+            console.error("Error:", error);
+            alert("Could not retrieve ETA. Please check your input and try again.");
+            // Reset button to original state
+            button.innerHTML = '<i class="fas fa-clock me-1"></i>Calculate Travel Time';
+            button.classList.remove('btn-success');
+            button.classList.add('btn-info');
+        })
+        .finally(() => {
+            button.disabled = false;
+        });
     });
 
     function calculateRoute(pickup, dropoff) {
@@ -227,8 +254,22 @@
         }
     });
 
-    document.addEventListener("DOMContentLoaded", function () {
-        setMinArrivalTime();
+    document.addEventListener("DOMContentLoaded", function() {
+        // Debug log for DOM elements
+        console.log("DOM Elements Check:", {
+            etaValue: document.getElementById("etaValue"),
+            etaDisplay: document.getElementById("etaDisplay"),
+            estimatedTravelTime: document.getElementById("estimated_travel_time"),
+            getETAButton: document.getElementById("getETAButton")
+        });
+        
+        // Verify the structure
+        const etaDisplay = document.getElementById("etaDisplay");
+        if (etaDisplay) {
+            console.log("ETA Display HTML:", etaDisplay.innerHTML);
+        } else {
+            console.error("ETA Display element not found in DOM");
+        }
     });
 </script>
 

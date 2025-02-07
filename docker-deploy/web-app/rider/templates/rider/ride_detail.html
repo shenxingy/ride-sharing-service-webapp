@@ -36,6 +36,12 @@
                         <li><strong>Requested Arrival:</strong> {{ ride.required_arrival_time|date:"M j, Y H:i" }}</li>
                         <li><strong>Special Requests:</strong> {{ ride.special_request|default:"None" }}</li>
                     </ul>
+                    {% if ride.status == "CONFIRMED" and ride.driver %}
+                        <p>Assigned Driver: {{ ride.driver.user.username }}</p>
+                        <p>Vehicle: {{ ride.driver.vehicle_details }}</p>
+                    {% else %}
+                        <p>No driver assigned yet.</p>
+                    {% endif %}
                 </div>
             </div>
 

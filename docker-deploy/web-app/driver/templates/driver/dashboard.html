@@ -97,6 +97,7 @@
         </div>
     </div>
 
+    {% if not my_rides %}
     <div class="card shadow-sm">
         <div class="card-header bg-info text-white">
             <h5 class="card-title mb-0"><i class="fas fa-list me-2"></i>Available Ride Requests</h5>
@@ -147,5 +148,7 @@
             {% endif %}
         </div>
     </div>
+    {% endif %}
 </div>
 {% endblock %}
+

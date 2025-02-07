@@ -161,15 +161,17 @@ def request_ride(request):
 
 @login_required
 def edit_ride(request, ride_id):
-    """Allows users to modify their ride only if it is still PENDING."""
-    ride = get_object_or_404(Ride, id=ride_id, rider=request.user, status='PENDING')
+    """Prevents editing confirmed rides."""
+    ride = get_object_or_404(Ride, id=ride_id, rider=request.user)
+
+    if ride.status != 'PENDING':
+        messages.error(request, "You cannot edit a confirmed or completed ride.")
+        return redirect("rider_dashboard")
 
     if request.method == 'POST':
         form = RideRequestForm(request.POST, instance=ride)
         if form.is_valid():
             form.save()
-            ride.total_passengers = form.cleaned_data.get("passenger_count", 1)
-            ride.created_at = now()
             ride.updated_at = now()
             ride.save()
             messages.success(request, "Ride updated successfully.")
@@ -181,8 +183,7 @@ def edit_ride(request, ride_id):
 
     return render(request, 'rider/edit_ride.html', {
         'form': form,
-        'ride': ride, 
-        "GOOGLE_MAPS_API_KEY": GOOGLE_MAPS_API_KEY  # Pass API key for map
+        'ride': ride
     })
     
 @login_required
@@ -314,8 +315,39 @@ class RideDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'ride'
 
     def get_queryset(self):
-        """Ensure users can only view their own rides or shared rides."""
         return Ride.objects.filter(
             Q(rider=self.request.user) | 
             Q(shared_rides__rider=self.request.user)
         ).distinct()
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["assigned_driver"] = self.object.driver
+        return context
+        
+@login_required
+def confirm_ride(request, ride_id):
+    """Confirms a ride and assigns a driver."""
+    ride = get_object_or_404(Ride, id=ride_id, status='PENDING')
+
+    if ride.driver:  # If already assigned, prevent reassignment
+        messages.error(request, "This ride is already confirmed with a driver.")
+        return redirect("rider_dashboard")
+
+    available_driver = Driver.objects.filter(is_available=True).first()
+
+    if not available_driver:
+        messages.error(request, "No available drivers at the moment. Please try again later.")
+        return redirect("rider_dashboard")
+
+    # Assign the driver and update the ride status
+    ride.driver = available_driver
+    ride.status = 'CONFIRMED'
+    ride.save()
+
+    # Mark the driver as unavailable
+    available_driver.is_available = False
+    available_driver.save()
+
+    messages.success(request, f"Ride confirmed! Driver {available_driver.user.username} assigned.")
+    return redirect("rider_dashboard")

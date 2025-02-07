@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
-from .models import Vehicle
+from .models import Driver
 from rider.models import Ride
 
 class DriverTests(TestCase):

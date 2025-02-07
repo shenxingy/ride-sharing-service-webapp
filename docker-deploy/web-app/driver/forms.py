@@ -1,9 +1,9 @@
 from django import forms
-from .models import Vehicle
+from .models import Driver
 
 class VehicleRegistrationForm(forms.ModelForm):
     class Meta:
-        model = Vehicle
+        model = Driver
         fields = ['type', 'plate_number', 'max_passengers', 'special_info']
         widgets = {
             'special_info': forms.Textarea(attrs={'rows': 3}),
@@ -11,7 +11,7 @@ class VehicleRegistrationForm(forms.ModelForm):
 
 class VehicleUpdateForm(forms.ModelForm):
     class Meta:
-        model = Vehicle
+        model = Driver
         fields = ['type', 'plate_number', 'max_passengers', 'special_info']
         widgets = {
             'type': forms.TextInput(attrs={'class': 'form-control'}),

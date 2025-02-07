@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import request_ride, get_eta, rider_dashboard, edit_ride, cancel_ride,RideDetailView
+from .views import request_ride, get_eta, rider_dashboard, edit_ride, cancel_ride, RideDetailView
 
 urlpatterns = [
     path("request/", request_ride, name="request_ride"),

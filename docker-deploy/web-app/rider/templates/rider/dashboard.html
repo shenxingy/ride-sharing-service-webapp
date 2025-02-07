@@ -3,79 +3,106 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h2>Rider Dashboard</h2>
-
-    {# Show Request Ride button only if no open rides exist #}
-    {% if not open_rides and not sharer_rides%}
-    <div class="mb-4">
-        <a href="{% url 'request_ride' %}" class="btn btn-primary">Request a Ride</a>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-user me-2"></i>Rider Dashboard</h2>
+        {% if not open_rides and not sharer_rides %}
+        <a href="{% url 'request_ride' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Request a Ride
+        </a>
+        {% endif %}
     </div>
-    {% endif %}
 
     {% if open_rides or sharer_rides %}
-    <h3 class="mt-4">Your Open Rides</h3>
-    
-    {# Rides Created by the User (Requester) #}
-    {% for ride in open_rides %}
-    <div class="card mb-3">
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0"><i class="fas fa-route me-2"></i>Your Open Rides</h5>
+        </div>
         <div class="card-body">
-            <h5 class="card-title">{{ ride.pickup_location }} → {{ ride.dropoff_location }}</h5>
-            <p class="card-text">
-                Status:
-                {% if ride.status == 'PENDING' %}
-                <span class="badge bg-warning text-dark">Pending</span>
-                {% elif ride.status == 'CONFIRMED' %}
-                <span class="badge bg-info text-dark">Confirmed</span>
-                {% endif %}
-                <br>
-                Passengers: {{ ride.passenger_count }}<br>
-                {% if ride.allow_sharing %}
-                Total Passengers: {{ ride.total_passengers }}<br>
-                {% endif %}
-                Requested: {{ ride.created_at|date:"M d, Y H:i" }}
-            </p>
+            {% for ride in open_rides %}
+            <div class="card mb-3 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5 class="card-title">
+                                <i class="fas fa-map-marker-alt text-danger me-2"></i>
+                                {{ ride.pickup_location }}
+                                <i class="fas fa-arrow-right mx-2 text-muted"></i>
+                                {{ ride.dropoff_location }}
+                            </h5>
+                            <p class="card-text">
+                                <span class="badge {% if ride.status == 'PENDING' %}bg-warning{% else %}bg-info{% endif %} text-dark me-2">
+                                    {{ ride.status }}
+                                </span>
+                                <i class="fas fa-users me-1"></i> {{ ride.passenger_count }} passengers
+                                {% if ride.allow_sharing %}
+                                <span class="badge bg-success ms-2">Shared Ride</span>
+                                <br><i class="fas fa-users-cog me-1"></i> Total: {{ ride.total_passengers }} passengers
+                                {% endif %}
+                                <br>
+                                <small class="text-muted">
+                                    <i class="far fa-clock me-1"></i>
+                                    Requested: {{ ride.created_at|date:"M d, Y H:i" }}
+                                </small>
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            {% if ride.status == 'PENDING' %}
+                            <a href="{% url 'edit_ride' ride.id %}" class="btn btn-warning mb-2">
+                                <i class="fas fa-edit me-1"></i>Modify Ride
+                            </a>
+                            <a href="{% url 'cancel_ride' ride.id %}" class="btn btn-danger"
+                                onclick="return confirm('Are you sure you want to cancel this ride?');">
+                                <i class="fas fa-times me-1"></i>Cancel Ride
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
 
-            {% if ride.status == 'PENDING' %}
-            <a href="{% url 'edit_ride' ride.id %}" class="btn btn-warning">Modify Ride</a>
-            <a href="{% url 'cancel_ride' ride.id %}" class="btn btn-danger" 
-            onclick="return confirm('Are you sure you want to cancel this ride?');">
-                Cancel Ride
-            </a>
-            {% endif %}
+            {% for share in sharer_rides %}
+            <div class="card mb-3 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5 class="card-title">
+                                <i class="fas fa-share-alt text-success me-2"></i>
+                                {{ share.ride.pickup_location }}
+                                <i class="fas fa-arrow-right mx-2 text-muted"></i>
+                                {{ share.ride.dropoff_location }}
+                            </h5>
+                            <p class="card-text">
+                                <span class="badge {% if share.ride.status == 'PENDING' %}bg-warning{% else %}bg-info{% endif %} text-dark me-2">
+                                    {{ share.ride.status }}
+                                </span>
+                                <br>
+                                <i class="fas fa-location-arrow me-1"></i> Your Pickup: {{ share.pickup_location }}<br>
+                                <i class="fas fa-map-marker-alt me-1"></i> Your Dropoff: {{ share.dropoff_location }}<br>
+                                <i class="fas fa-users me-1"></i> Passengers in Ride: {{ share.ride.total_passengers }}/{{ share.ride.passenger_count }}<br>
+                                <small class="text-muted">
+                                    <i class="far fa-clock me-1"></i>
+                                    Requested: {{ share.ride.created_at|date:"M d, Y H:i" }}
+                                </small>
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            {% if share.ride.status == 'PENDING' %}
+                            <form method="POST" action="{% url 'rider_dashboard' %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="leave_ride_id" value="{{ share.id }}">
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="fas fa-sign-out-alt me-1"></i>Leave Ride
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
         </div>
     </div>
-    {% endfor %}
-    
-    {# Rides Joined as a Sharer #}
-    {% for share in sharer_rides %}
-    <div class="card mb-3">
-        <div class="card-body">
-            <h5 class="card-title">{{ share.ride.pickup_location }} → {{ share.ride.dropoff_location }}</h5>
-            <p class="card-text">
-                Status:
-                {% if share.ride.status == 'PENDING' %}
-                <span class="badge bg-warning text-dark">Pending</span>
-                {% elif share.ride.status == 'CONFIRMED' %}
-                <span class="badge bg-info text-dark">Confirmed</span>
-                {% endif %}
-                <br>
-                Your Pickup: {{ share.pickup_location }}<br>
-                Your Dropoff: {{ share.dropoff_location }}<br>
-                Passengers in Ride: {{ share.ride.total_passengers }}/{{ share.ride.passenger_count }}<br>
-                Requested: {{ share.ride.created_at|date:"M d, Y H:i" }}
-            </p>
-
-            {% if share.ride.status == 'PENDING' %}
-            <form method="POST" action="{% url 'rider_dashboard' %}">
-                {% csrf_token %}
-                <input type="hidden" name="leave_ride_id" value="{{ share.id }}">
-                <button type="submit" class="btn btn-danger">Leave Ride</button>
-            </form>
-            {% endif %}
-        </div>
-    </div>
-    {% endfor %}
-    
     {% endif %}
 
     {% if not open_rides and not sharer_rides %}

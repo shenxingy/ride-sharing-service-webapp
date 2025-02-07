@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 
-class Vehicle(models.Model):
+class Driver(models.Model):
     driver = models.OneToOneField(User, on_delete=models.CASCADE)
     type = models.CharField(max_length=50)
     plate_number = models.CharField(max_length=20)

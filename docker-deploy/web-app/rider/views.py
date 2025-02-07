@@ -204,15 +204,16 @@ def rider_dashboard(request):
         rider=request.user, status__in=['PENDING', 'CONFIRMED']
     ).order_by('-created_at')
 
+    # For rides the user has joined as a sharer, separate active from history.
+    active_sharer_rides = RideShare.objects.filter(
+        rider=request.user, status__in=['PENDING', 'CONFIRMED']
+    ).select_related('ride')
+    
+    has_active_rides = open_rides.exists() or active_sharer_rides.exists()
+    
     closed_rides = Ride.objects.filter(
         rider=request.user, status__in=['COMPLETED', 'CANCELLED']
     ).order_by('-created_at')
-
-    # For rides the user has joined as a sharer, separate active from history.
-    active_sharer_rides = RideShare.objects.filter(
-        rider=request.user, status='PENDING'
-    ).select_related('ride')
-    
     sharer_history = RideShare.objects.filter(
         rider=request.user
     ).exclude(status='PENDING').select_related('ride')
@@ -290,6 +291,7 @@ def rider_dashboard(request):
         search_performed = True
 
     context = {
+        "has_active_rides": has_active_rides,
         "open_rides": open_rides,
         "active_sharer_rides": active_sharer_rides,
         "sharer_history": sharer_history,

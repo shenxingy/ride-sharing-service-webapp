@@ -18,6 +18,19 @@
 
 ## Danger Log / TODO
 
+### Feb 6
+
+#### Must Do
+- [ ] sharer 下单填错啥的会崩溃（得加个错误提醒
+- [ ] sharer requester的人数显示那一块都很蹊跷，得调整一下，但是人数筛查不在那块
+- [ ] driver显示的订单必须筛查完，符合条件的才能显示
+- [ ] 订单信息显示不全，解决方案（1.点击看详情。/ 2.直接把所有信息扔上去）
+
+#### Optional
+
+- [ ] sharer和requester有订单的时候按理来讲不应该去当司机，可以加个限制，当他想退出直接提示：您有未完成的订单，得先取消订单
+- [ ] 对照danger log和todo list再看一眼，此外danger log一堆我写的中文，得翻译一波
+
 ### Feb 3
 
 #### Must Do

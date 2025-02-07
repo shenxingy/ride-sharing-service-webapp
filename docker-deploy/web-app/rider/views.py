@@ -7,6 +7,8 @@ from django.db.models import Q
 from django.conf import settings
 from django.utils.timezone import now
 from datetime import timedelta
+from django.views.generic.detail import DetailView
+from django.contrib.auth.mixins import LoginRequiredMixin  # Add this import
 
 
 from django.http import JsonResponse
@@ -141,8 +143,8 @@ def request_ride(request):
         if form.is_valid():
             ride = form.save(commit=False)
             ride.rider = request.user
-            
-            ride.required_arrival_time = ride.required_arrival_time
+            ride.total_passengers += form.cleaned_data.get("passenger_count", 1)
+            ride.status = 'PENDING'
             ride.save()  # 🚀 Assigns an ID
             
             return redirect('rider_dashboard')
@@ -166,6 +168,10 @@ def edit_ride(request, ride_id):
         form = RideRequestForm(request.POST, instance=ride)
         if form.is_valid():
             form.save()
+            ride.total_passengers = form.cleaned_data.get("passenger_count", 1)
+            ride.created_at = now()
+            ride.updated_at = now()
+            ride.save()
             messages.success(request, "Ride updated successfully.")
             return redirect('rider_dashboard')
         else:
@@ -180,18 +186,37 @@ def edit_ride(request, ride_id):
     })
     
 @login_required
+def cancel_ride(request, ride_id):
+    """Allow the ride owner to cancel a pending ride."""
+    ride = get_object_or_404(Ride, id=ride_id, rider=request.user, status='PENDING')
+
+    # Mark the ride as cancelled
+    ride.status = 'CANCELLED'
+    ride.save()
+
+    messages.success(request, "Ride has been cancelled successfully.")
+    return redirect('rider_dashboard')
+
+@login_required
 def rider_dashboard(request):
-    """Display user's rides, allow searching, joining, and leaving rides."""
+    # Owner’s rides:
     open_rides = Ride.objects.filter(
         rider=request.user, status__in=['PENDING', 'CONFIRMED']
     ).order_by('-created_at')
 
+    # For rides the user has joined as a sharer, separate active from history.
+    active_sharer_rides = RideShare.objects.filter(
+        rider=request.user, status__in=['PENDING', 'CONFIRMED']
+    ).select_related('ride')
+    
+    has_active_rides = open_rides.exists() or active_sharer_rides.exists()
+    
     closed_rides = Ride.objects.filter(
         rider=request.user, status__in=['COMPLETED', 'CANCELLED']
     ).order_by('-created_at')
-
-    # Rides user has joined as a sharer
-    sharer_rides = RideShare.objects.filter(rider=request.user).select_related('ride')
+    sharer_history = RideShare.objects.filter(
+        rider=request.user
+    ).exclude(status='PENDING').select_related('ride')
 
     search_results = []
     search_performed = False
@@ -209,9 +234,11 @@ def rider_dashboard(request):
             RideShare.objects.create(
                 ride=ride,
                 rider=request.user,
+                status='PENDING',
                 passenger_count=passenger_count,
                 pickup_location=sharer_pickup,
-                dropoff_location=sharer_dropoff
+                dropoff_location=sharer_dropoff,
+                created_at=now()
             )
 
             # Update total_passengers (just for record-keeping)
@@ -223,20 +250,22 @@ def rider_dashboard(request):
 
         elif "leave_ride_id" in request.POST:
             share_id = request.POST.get("leave_ride_id")
-            ride_share = get_object_or_404(RideShare, id=share_id, rider=request.user)
+            # Ensure we are only processing an active share ride.
+            ride_share = get_object_or_404(RideShare, id=share_id, rider=request.user, status='PENDING')
             ride = ride_share.ride
 
-            # Update total_passengers (just for record-keeping)
+            # Update the total_passengers count on the parent ride.
             ride.total_passengers -= ride_share.passenger_count
             ride.save()
 
-            # Remove the RideShare entry
-            ride_share.delete()
+            # Change the RideShare status to CANCELLED.
+            ride_share.status = 'CANCELLED'
+            ride_share.save()
 
             messages.success(request, "Successfully left the ride.")
             return redirect("rider_dashboard")
 
-    # Handle Searching for Rides
+    # Handle Searching for Rides (unchanged)...
     if request.method == "GET" and "search" in request.GET:
         sharer_pickup = request.GET.get("sharer_pickup", "").strip()
         sharer_dropoff = request.GET.get("sharer_dropoff", "").strip()
@@ -255,30 +284,33 @@ def rider_dashboard(request):
                 sharer_pickup=sharer_pickup,
                 sharer_dropoff=sharer_dropoff,
             )
-
             if route_info:
                 valid_rides.append(ride)
 
         search_results = valid_rides
         search_performed = True
 
-    return render(request, "rider/dashboard.html", {
+    context = {
+        "has_active_rides": has_active_rides,
         "open_rides": open_rides,
-        "sharer_rides": sharer_rides,
+        "active_sharer_rides": active_sharer_rides,
+        "sharer_history": sharer_history,
         "closed_rides": closed_rides,
         "search_results": search_results,
         "search_performed": search_performed,
         "GOOGLE_MAPS_API_KEY": GOOGLE_MAPS_API_KEY,
-    })
-    
-@login_required
-def cancel_ride(request, ride_id):
-    """Allow the ride owner to cancel a pending ride."""
-    ride = get_object_or_404(Ride, id=ride_id, rider=request.user, status='PENDING')
+    }
+    return render(request, "rider/dashboard.html", context)
 
-    # Mark the ride as cancelled
-    ride.status = 'CANCELLED'
-    ride.save()
 
-    messages.success(request, "Ride has been cancelled successfully.")
-    return redirect('rider_dashboard')
+class RideDetailView(LoginRequiredMixin, DetailView):
+    model = Ride
+    template_name = 'rider/ride_detail.html'
+    context_object_name = 'ride'
+
+    def get_queryset(self):
+        """Ensure users can only view their own rides or shared rides."""
+        return Ride.objects.filter(
+            Q(rider=self.request.user) | 
+            Q(shared_rides__rider=self.request.user)
+        ).distinct()

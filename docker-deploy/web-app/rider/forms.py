@@ -47,7 +47,8 @@ class RideRequestForm(forms.ModelForm):
 
     class Meta:
         model = Ride
-        fields = ['pickup_location', 'dropoff_location', 'passenger_count', 'required_arrival_time','special_request', 'allow_sharing']
+        fields = ['pickup_location', 'dropoff_location', 'passenger_count', 
+                  'required_arrival_time','special_request', 'allow_sharing']
         widgets = {
             'special_request': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
             'passenger_count': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),

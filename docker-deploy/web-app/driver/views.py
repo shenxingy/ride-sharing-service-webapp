@@ -93,15 +93,15 @@ def accept_ride(request, ride_id):
 
                     Have a great ride!"""
 
-                    # if send_email(ride.rider.email, subject, message):
-                    #     messages.success(request, 'Ride accepted and notification sent!')
-                    # else:
-                    #     messages.success(request, 'Ride accepted but email notification failed.')
+                    if send_email(ride.rider.email, subject, message):
+                        messages.success(request, 'Ride accepted and notification sent!')
+                    else:
+                        messages.success(request, 'Ride accepted but email notification failed.')
                 except Exception as e:
                     logger.error(f"Email error: {str(e)}")
-                    # messages.success(request, 'Ride accepted but email notification failed.')
-            # else:
-                # messages.success(request, 'Ride accepted!')
+                    messages.success(request, 'Ride accepted but email notification failed.')
+            else:
+                messages.success(request, 'Ride accepted!')
                 
             return redirect('driver_dashboard')
         # else:

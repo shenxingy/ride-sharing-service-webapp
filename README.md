@@ -1,83 +1,79 @@
-# erss-hwk1-jh730-xs90
+# Duke-Duber (erss-hwk1-jh730-xs90)
 
-## What's new
+This is a platform for ride-sharing, developed as part of the **ERSS (Engineering of Reliable Software Systems)** course at **Duke University**.
 
-### 2025.02.07
+## What's New
 
-- [ ] Email registration
-- [ ] store the email in the database
-- [ ] send email for ride accepted
+### 2025-02-07
+- Email registration implemented
+- Store user emails in the database
+- Send email notifications when a ride is accepted
 
-### 2025.02.03
+### 2025-02-03
+- Users can only modify existing ride requests and view ride history; they can no longer initiate new ride requests.
+- Users can now see detailed information about their past rides.
+- **Notes (Limitations):**  
+  - Each ride can only have one sharer (this restriction is not yet implemented).  
+  - When ride-sharing is enabled, the route follows this order:  
+    **Initiator → Passenger pickup point → (Passenger drop-off point, Initiator’s destination)**.  
+    The last two steps can be adjusted for optimal route efficiency, but all drop-off times must remain within the passengers’ allowed time windows.
 
-- 用户的request后只能修改订单以及看到历史订单，不能再发起新的订单
-- 用户的历史订单可以看到详细信息
-- Notes(限制)
-    - 一单只能有一个sharer（还没有做这个限制）
-    - 允许拼车时，路线为：发起者，乘客上车点，（乘客下车点，发起者终点）后两者先后顺序不限，怎么顺路怎么来，但是需要确保下车时间都在其允许的时间限制内
+## Danger Log / TODO  
 
-## Danger Log / TODO
+### **Feb 6**  
 
-### Feb 6
+#### **Must Do**  
+- [X] Fix crashes caused by incorrect input from the sharer (add error handling).  
+- [X] Adjust the sharer/requester passenger count display, as it currently appears inconsistent (though the actual count validation happens elsewhere).  
+- [X] Ensure that drivers only see ride requests that match their criteria.  
+- [X] Ride information display is incomplete; possible solutions:  
+  1. Add a **"View Details"** function.  
+  2. Display all ride details directly.  
 
-#### Must Do
-- [ ] sharer 下单填错啥的会崩溃（得加个错误提醒
-- [ ] sharer requester的人数显示那一块都很蹊跷，得调整一下，但是人数筛查不在那块
-- [ ] driver显示的订单必须筛查完，符合条件的才能显示
-- [ ] 订单信息显示不全，解决方案（1.点击看详情。/ 2.直接把所有信息扔上去）
+#### **Optional**  
+- [ ] Users with an active ride (as either a sharer or requester) should not be able to act as a driver.  
+      If they try, show a message: *"You have an ongoing ride. Please cancel it before switching roles."*  
+- [X] Review the **Danger Log** and **TODO List** for any overlooked issues. Also, translate remaining Chinese notes.  
+- [X] Test UI responsiveness across different browsers, window sizes, and devices (mobile, desktop, etc.).  
 
-#### Optional
+### **Feb 4**  
 
-- [ ] sharer和requester有订单的时候按理来讲不应该去当司机，可以加个限制，当他想退出直接提示：您有未完成的订单，得先取消订单
-- [ ] 对照danger log和todo list再看一眼，此外danger log一堆我写的中文，得翻译一波
-- [ ] 不同浏览器，不同窗口大小，不同显示设备（手机， 电脑）的表现
+#### **Must Do**  
+- [X] The ride modification page should have a similar layout to the ride request page.  
+- [X] Add a unique ID for each ride request.  
+- [X] Allow users to cancel their ride requests.  
 
-### Feb 3
+### **Feb 3**  
 
-#### Must Do
+#### **Must Do**  
+- [ ] A driver cannot switch to rider mode while carrying a passenger, and vice versa.  
+- [X] Clicking on a ride should display full details (driver, sharer, etc.).  
+- [X] Each ride should have only one sharer (restriction not yet implemented).  
+- [X] The initiator’s latest arrival time must be later than the modification time + estimated travel time + 1 minute.  
+- [X] A sharer should be able to leave a shared ride and search for another one.  
+- [X] Once a sharer confirms a ride, their dashboard should resemble the initiator’s,  
+      but clicking **"Modify Ride"** should redirect them to the ride search page instead.  
 
-- [ ] 修改订单的时候看到的内容需要和request差不多
-- [ ] 我们需要给request增加id
-- [ ] request可以取消
+### **Feb 1**  
 
-### Feb 3
+#### **Must Do**  
+- [X] Add `.gitignore` file for `__pycache__` and `.vscode`.  
+- [X] Allow non-standard pickup and drop-off locations.  
+- [X] Prevent excessively large passenger counts.  
+- [X] Ensure pickup date and time are not in the past.  
+- [X] Implement ride-sharing option.  
+- [X] Allow users to select an optional vehicle type.  
+- [X] Add arrival date and time.    
+- [X] The ride owner can modify an active ride.  
+- [X] On the main dashboard, only a summary of rides should be displayed. Clicking on a ride should show more details.  
+- [X] Allow drivers to update their vehicle information.  
+- [X] Restrict drivers to accepting only one ride at a time.  
+- [X] Allow drivers to view their ride history.  
+- [X] Allow drivers to see ride details.  
+- [X] Enable drivers to mark a ride as **"finished."**  
+- [X] Ensure drivers can only select rides that match their vehicle type.  
 
-#### Must Do
-
-- [ ] The driver cannot go to the rider mode if he/she is carring a passenger; vise versa.
-- [ ] 点开所有的订单可以看到详细信息(司机，sharer等)
-- [ ] 一单只能有一个sharer（还没有做这个限制）
-- [ ] 发起者的最晚到达时间需要比修改订单时间 + 预计到达时间 + 1min 晚
-- [ ] 拼车者可以考虑退出拼车，重新搜索；拼车者确认后看到的dashboard应该和发起者类似，不过点击修改订单是回去重新搜索，即最初的dashboard
-
-### Feb 1
-
-#### Must Do
-
-- [X] Add .gitignore file for __pycache__ and .vscode
-- [X] Pickup Location and Dropoff Location might not be a real correct address
-- [X] Passenger count can be super large
-- [X] Pickup date and time is in the past
-- [ ] Share or not share the ride
-- [ ] Optional vehicle type
-- [ ] Add arrival date and time
-- [ ] Show ride id
-- [ ] After ride is created, one can only view the opened rides and ride history, not request a new ride
-- [ ] For the opened rides, ride owner can modify the ride.
-- [ ] One dashboard, only simple version of ride is shown. User can click on the ride to see more details.
-- [ ] Similar to driver, one driver can only
-- [ ] Hardcode user data for testing
-- [ ] Driver can update its vehicle information
-- [ ] Driver can only accept one ride at a time
-- [ ] Driver can see ride histories
-- [ ] Driver can also see the ride details
-- [ ] Driver can click finished ride
-- [ ] Driver can only select rides that matched its vehicle type
-
-#### Optional
-
-- [ ] Time zone selection for users
-- [ ] User can update their profile and password
-- [ ] Add start after must entered fields
-
-
+#### **Optional**  
+- [ ] Implement time zone selection for users.  
+- [X] Allow users to update their profile and password.  
+- [X] Require users to fill in mandatory fields before proceeding.  

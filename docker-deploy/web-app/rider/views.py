@@ -183,7 +183,8 @@ def edit_ride(request, ride_id):
 
     return render(request, 'rider/edit_ride.html', {
         'form': form,
-        'ride': ride
+        'ride': ride,
+        "GOOGLE_MAPS_API_KEY": GOOGLE_MAPS_API_KEY
     })
     
 @login_required

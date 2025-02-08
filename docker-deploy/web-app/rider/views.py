@@ -316,10 +316,7 @@ class RideDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'ride'
 
     def get_queryset(self):
-        return Ride.objects.filter(
-            Q(rider=self.request.user) | 
-            Q(shared_rides__rider=self.request.user)
-        ).distinct()
+        return Ride.objects.all()
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

@@ -9,6 +9,8 @@ from django.conf import settings
 from django.core.mail import get_connection
 import socket
 from utils.gmail_service import send_email
+from django.views.generic.detail import DetailView
+from django.contrib.auth.mixins import LoginRequiredMixin
 import logging
 
 logger = logging.getLogger(__name__)
@@ -91,22 +93,22 @@ def accept_ride(request, ride_id):
 
                     Have a great ride!"""
 
-                    if send_email(ride.rider.email, subject, message):
-                        messages.success(request, 'Ride accepted and notification sent!')
-                    else:
-                        messages.success(request, 'Ride accepted but email notification failed.')
+                    # if send_email(ride.rider.email, subject, message):
+                    #     messages.success(request, 'Ride accepted and notification sent!')
+                    # else:
+                    #     messages.success(request, 'Ride accepted but email notification failed.')
                 except Exception as e:
                     logger.error(f"Email error: {str(e)}")
-                    messages.success(request, 'Ride accepted but email notification failed.')
-            else:
-                messages.success(request, 'Ride accepted!')
+                    # messages.success(request, 'Ride accepted but email notification failed.')
+            # else:
+                # messages.success(request, 'Ride accepted!')
                 
             return redirect('driver_dashboard')
-        else:
-            messages.error(request, 'Your vehicle cannot accommodate this many passengers.')
+        # else:
+            # messages.error(request, 'Your vehicle cannot accommodate this many passengers.')
     except Exception as e:
         print(f"Unexpected error in accept_ride: {str(e)}")
-        messages.error(request, 'An error occurred while processing your request.')
+        # messages.error(request, 'An error occurred while processing your request.')
     
     return redirect('driver_dashboard')
 
@@ -117,11 +119,12 @@ def finish_ride(request, ride_id):
         ride = get_object_or_404(Ride, id=ride_id, status='CONFIRMED', driver=vehicle)
         ride.status = 'COMPLETED'
         ride.save()
-        messages.success(request, 'Ride completed successfully!')
+        # messages.success(request, 'Ride completed successfully!')
     except Driver.DoesNotExist:
-        messages.error(request, 'Vehicle not found!')
-    except Ride.DoesNotExist:
-        messages.error(request, 'Ride not found!')
+        print("vehicle not found")
+    #     messages.error(request, 'Vehicle not found!')
+    # except Ride.DoesNotExist:
+        # messages.error(request, 'Ride not found!')
     
     return redirect('driver_dashboard')
 
@@ -133,10 +136,20 @@ def update_vehicle(request):
             form = VehicleUpdateForm(request.POST, instance=vehicle)
             if form.is_valid():
                 form.save()
-                messages.success(request, 'Vehicle information updated successfully!')
+                # messages.success(request, 'Vehicle information updated successfully!')
                 return redirect('driver_dashboard')
         else:
             form = VehicleUpdateForm(instance=vehicle)
         return render(request, 'driver/update_vehicle.html', {'form': form})
     except Driver.DoesNotExist:
         return redirect('vehicle_registration')
+
+
+class RideDetailView(LoginRequiredMixin, DetailView):
+    model = Ride
+    template_name = 'rider/ride_detail.html'  # 你自己的详情模板
+    context_object_name = 'ride'
+    
+    def get_queryset(self):
+        # 例如只让当前登录用户或相关司机看到
+        return Ride.objects.all()

@@ -4,7 +4,10 @@ This is a platform for ride-sharing, developed as part of the **ERSS (Engineerin
 
 ## What's New
 
+
+
 ### 2025-02-07
+- We stored the credetials.json and token.js in our local working environment and put them in the gitignore.
 - Email registration implemented
 - Store user emails in the database
 - Send email notifications when a ride is accepted

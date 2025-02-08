@@ -81,7 +81,7 @@ def accept_ride(request, ride_id):
                     subject = "Your Ride Has Been Accepted"
                     message = f"""Dear User,
 
-                    Your ride has been accepted by driver {drider.driver.username}.
+                    Your ride has been accepted by driver.
                     The driver will provide service shortly.
 
                     Ride Details:

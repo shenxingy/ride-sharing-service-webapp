@@ -106,7 +106,7 @@
                                 <div class="mt-2">
                                     <small class="text-muted">
                                         Ride ID: {{ share.ride.id }}<br>
-                                        Seats Available: {{ share.ride.available_seats }}
+                                        Total Passengers: {{ share.ride.total_passengers }}
                                     </small>
                                 </div>
                             </form>
@@ -206,7 +206,7 @@
                                     <i class="far fa-clock me-2"></i>
                                     Arrival: {{ ride.required_arrival_time|date:"M d, Y H:i" }}<br>
                                     <i class="fas fa-users me-2"></i>
-                                    Available Seats: {{ ride.total_passengers }}/{{ ride.passenger_count }}
+                                    Current Passengers: {{ ride.total_passengers }}
                                 </p>
                             </div>
                             <form method="POST" action="{% url 'rider_dashboard' %}">

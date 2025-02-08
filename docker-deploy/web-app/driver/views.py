@@ -46,7 +46,7 @@ def vehicle_registration(request):
             vehicle = form.save(commit=False)
             vehicle.driver = request.user
             vehicle.save()
-            messages.success(request, 'Vehicle registered successfully!')
+            #messages.success(request, 'Vehicle registered successfully!')
             return redirect('driver_dashboard')
     else:
         form = VehicleRegistrationForm()
@@ -61,7 +61,7 @@ def accept_ride(request, ride_id):
         # 获取订单并检查状态
         ride = Ride.objects.get(id=ride_id)
         if ride.status != 'PENDING':
-            messages.error(request, 'This ride is no longer available.')
+            #messages.error(request, 'This ride is no longer available.')
             return redirect('driver_dashboard')
 
         # 计算总乘客数
@@ -145,11 +145,11 @@ def update_vehicle(request):
         return redirect('vehicle_registration')
 
 
-class RideDetailView(LoginRequiredMixin, DetailView):
+class DriverRideDetailView(LoginRequiredMixin, DetailView):
     model = Ride
-    template_name = 'rider/ride_detail.html'  # 你自己的详情模板
+    template_name = 'driver/driver_ride_detail.html'  # 司机专用的模板
     context_object_name = 'ride'
-    
+
     def get_queryset(self):
-        # 例如只让当前登录用户或相关司机看到
+        # 如果司机真的要看到所有订单，不加限制就行
         return Ride.objects.all()

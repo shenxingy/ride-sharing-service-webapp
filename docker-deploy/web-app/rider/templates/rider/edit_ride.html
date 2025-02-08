@@ -37,17 +37,6 @@
                         <button type="button" class="btn btn-info mt-2" id="getDistanceButton">Get Estimated Distance</button>
                         <button type="button" class="btn btn-info mt-2" id="getETAButton">Get Estimated Time</button>
                         
-                        <!-- Combined Container for Estimated Time and Distance -->
-                        <div id="etaContainer" class="mt-3" style="display: none;">
-                            <p class="mb-1 text-info">
-                                <strong>Estimated Travel Time:</strong>
-                                <span id="etaValue"></span>
-                            </p>
-                            <p class="mb-1 text-info">
-                                <strong>Estimated Distance:</strong>
-                                <span id="distanceValue"></span>
-                            </p>
-                        </div>
 
                         <!-- Required Arrival Time Field -->
                         <div class="form-group mt-3">
@@ -117,6 +106,10 @@
             return;
         }
 
+        const button = document.getElementById("getETAButton");
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Calculating Time...';
+
         fetch("{% url 'get_eta' %}", {
             method: "POST",
             headers: {
@@ -128,22 +121,29 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                document.getElementById("etaValue").innerText = data.estimated_time;
-                document.getElementById("distanceValue").innerText = data.estimated_distance;
-                document.getElementById("etaContainer").style.display = "block";
-
                 let match = data.estimated_time.match(/(\d+)\s*min/);
                 estimatedMinutes = match ? parseInt(match[1]) : 5;
                 
                 document.getElementById("estimated_travel_time").value = estimatedMinutes;
-
+                
                 setMinArrivalTime();
                 calculateRoute(pickup, dropoff);
+
+                button.innerHTML = `<i class="fas fa-clock me-1"></i>Est. Time: ${data.estimated_time}`;
+                button.classList.remove('btn-info');
+                button.classList.add('btn-success');
             } else {
                 alert("Could not retrieve ETA. Please check your input.");
             }
         })
-        .catch(error => console.error("Error:", error));
+        .catch(error => {
+            console.error("Error:", error);
+            alert("Error retrieving estimated time.");
+            button.innerHTML = 'Get Estimated Time';
+        })
+        .finally(() => {
+            button.disabled = false;
+        });
     });
 
     document.getElementById("getDistanceButton").addEventListener("click", function () {

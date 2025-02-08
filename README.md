@@ -2,7 +2,16 @@
 
 This is a platform for ride-sharing, developed as part of the **ERSS (Engineering of Reliable Software Systems)** course at **Duke University**.
 
-Note that we have
+Please note that we stored the credetials.json and token.js in our local working environment and put them in the gitignore.
+In the .env file, we have Google Maps API key, email host user and password.
+```
+GOOGLE_MAPS_API_KEY=xxxx
+EMAIL_HOST_USER=xxxx
+EMAIL_HOST_PASSWORD=xxx
+```
+The token.json and credentials.json are also used for sending email notifications to the users.
+
+
 ![alt text](Homepage.png)
 
 ## What's New
@@ -10,7 +19,6 @@ Note that we have
 
 
 ### 2025-02-07
-- We stored the credetials.json and token.js in our local working environment and put them in the gitignore.
 - Email registration implemented
 - Store user emails in the database
 - Send email notifications when a ride is accepted

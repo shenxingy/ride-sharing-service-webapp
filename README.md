@@ -2,6 +2,9 @@
 
 This is a platform for ride-sharing, developed as part of the **ERSS (Engineering of Reliable Software Systems)** course at **Duke University**.
 
+Note that we have
+![alt text](Homepage.png)
+
 ## What's New
 
 

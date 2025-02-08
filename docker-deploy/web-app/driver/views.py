@@ -145,11 +145,11 @@ def update_vehicle(request):
         return redirect('vehicle_registration')
 
 
-class RideDetailView(LoginRequiredMixin, DetailView):
+class DriverRideDetailView(LoginRequiredMixin, DetailView):
     model = Ride
-    template_name = 'rider/ride_detail.html'  # 你自己的详情模板
+    template_name = 'driver/driver_ride_detail.html'  # 司机专用的模板
     context_object_name = 'ride'
-    
+
     def get_queryset(self):
-        # 例如只让当前登录用户或相关司机看到
+        # 如果司机真的要看到所有订单，不加限制就行
         return Ride.objects.all()

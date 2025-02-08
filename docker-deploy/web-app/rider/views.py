@@ -148,8 +148,8 @@ def request_ride(request):
             ride.save()  # 🚀 Assigns an ID
             
             return redirect('rider_dashboard')
-        else:
-            messages.error(request, 'There was an error in your ride request. Please check your input.')
+        # else:
+            #messages.error(request, 'There was an error in your ride request. Please check your input.')
 
     else:
         form = RideRequestForm()
@@ -165,7 +165,7 @@ def edit_ride(request, ride_id):
     ride = get_object_or_404(Ride, id=ride_id, rider=request.user)
 
     if ride.status != 'PENDING':
-        messages.error(request, "You cannot edit a confirmed or completed ride.")
+        #messages.error(request, "You cannot edit a confirmed or completed ride.")
         return redirect("rider_dashboard")
 
     if request.method == 'POST':
@@ -174,10 +174,10 @@ def edit_ride(request, ride_id):
             form.save()
             ride.updated_at = now()
             ride.save()
-            messages.success(request, "Ride updated successfully.")
+            #messages.success(request, "Ride updated successfully.")
             return redirect('rider_dashboard')
-        else:
-            messages.error(request, "There was an error updating your ride.")
+        # else:
+            #messages.error(request, "There was an error updating your ride.")
     else:
         form = RideRequestForm(instance=ride)
 
@@ -331,13 +331,13 @@ def confirm_ride(request, ride_id):
     ride = get_object_or_404(Ride, id=ride_id, status='PENDING')
 
     if ride.driver:  # If already assigned, prevent reassignment
-        messages.error(request, "This ride is already confirmed with a driver.")
+        # messages.error(request, "This ride is already confirmed with a driver.")
         return redirect("rider_dashboard")
 
     available_driver = Driver.objects.filter(is_available=True).first()
 
     if not available_driver:
-        messages.error(request, "No available drivers at the moment. Please try again later.")
+        # messages.error(request, "No available drivers at the moment. Please try again later.")
         return redirect("rider_dashboard")
 
     # Assign the driver and update the ride status
@@ -349,5 +349,5 @@ def confirm_ride(request, ride_id):
     available_driver.is_available = False
     available_driver.save()
 
-    messages.success(request, f"Ride confirmed! Driver {available_driver.user.username} assigned.")
+    # messages.success(request, f"Ride confirmed! Driver {available_driver.user.username} assigned.")
     return redirect("rider_dashboard")

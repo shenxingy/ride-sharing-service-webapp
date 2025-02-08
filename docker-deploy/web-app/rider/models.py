@@ -43,6 +43,3 @@ class RideShare(models.Model):
     dropoff_location = models.CharField(max_length=255, default='Unknown')
     passenger_count = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ['ride', 'rider'] 

@@ -1,6 +1,6 @@
 # Duke-Duber (erss-hwk1-jh730-xs90)
 
-[Visit the site](http://ece568-first.colab.duke.edu:8000/)
+[Visit the site](http://alex-main.colab.duke.edu:8000/)
 
 This is a platform for ride-sharing, developed as part of the **ERSS (Engineering of Reliable Software Systems)** course at **Duke University**.
 

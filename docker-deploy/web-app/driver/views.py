@@ -4,10 +4,6 @@ from .models import Driver
 from .forms import VehicleRegistrationForm, VehicleUpdateForm
 from django.contrib import messages
 from rider.models import Ride
-from django.core.mail import send_mail
-from django.conf import settings
-from django.core.mail import get_connection
-import socket
 from utils.gmail_service import send_email
 from django.views.generic.detail import DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -106,10 +102,10 @@ def accept_ride(request, ride_id):
             return redirect('driver_dashboard')
         # else:
             # messages.error(request, 'Your vehicle cannot accommodate this many passengers.')
-    except Exception as e:
-        print(f"Unexpected error in accept_ride: {str(e)}")
+    except Exception:
+        logger.exception("Unexpected error in accept_ride")
         # messages.error(request, 'An error occurred while processing your request.')
-    
+
     return redirect('driver_dashboard')
 
 @login_required
@@ -121,11 +117,11 @@ def finish_ride(request, ride_id):
         ride.save()
         # messages.success(request, 'Ride completed successfully!')
     except Driver.DoesNotExist:
-        print("vehicle not found")
+        logger.warning("Driver profile not found in finish_ride for user %s", request.user)
     #     messages.error(request, 'Vehicle not found!')
     # except Ride.DoesNotExist:
         # messages.error(request, 'Ride not found!')
-    
+
     return redirect('driver_dashboard')
 
 @login_required

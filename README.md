@@ -1,95 +1,127 @@
-# Duke-Duber (erss-hwk1-jh730-xs90)
+# Ride Sharing Service
 
-[Visit the site](http://alex-main.colab.duke.edu:8000/)
+A platform for ride-sharing, developed as part of the **ERSS (Engineering of Reliable Software Systems)** course at **Duke University**.
 
-This is a platform for ride-sharing, developed as part of the **ERSS (Engineering of Reliable Software Systems)** course at **Duke University**.
+![Homepage](Homepage.png)
 
-Please note that we stored the credetials.json and token.js in our local working environment and put them in the gitignore.
-In the .env file, we have Google Maps API key, email host user and password.
+## Features
+
+- **Driver & Rider Roles** — Register as a driver to offer rides, or as a rider to request or join a shared ride.
+- **Ride Requests** — Riders create ride requests with pickup/drop-off locations, passenger count, arrival time, and optional vehicle type preference.
+- **Ride Sharing** — Riders can search for and join existing rides headed in their direction; route optimization via Google Maps Directions API.
+- **Driver Dashboard** — Drivers see matching open ride requests filtered by vehicle capacity and special requirements.
+- **Email Notifications** — Riders receive an email when a driver accepts their ride (via Gmail API).
+- **Profile Management** — Users can update their profile and change their password.
+- **Dark Mode** — System-aware dark/light theme toggle.
+
+## Tech Stack
+
+- **Backend**: Django 5.1, PostgreSQL
+- **Frontend**: Bootstrap 5, SweetAlert2
+- **APIs**: Google Maps Distance Matrix & Directions API, Gmail API (OAuth2)
+- **Infrastructure**: Docker, Docker Compose, Nginx
+
+## Prerequisites
+
+- Docker and Docker Compose
+- A `.env` file with required secrets (see below)
+- Google Maps API key enabled for Distance Matrix and Directions APIs
+- Gmail OAuth2 credentials for email notifications (optional)
+
+## Setup
+
+### 1. Clone the repository
+
+```bash
+git clone <repo-url>
+cd ride-sharing-service-webapp
 ```
-GOOGLE_MAPS_API_KEY=xxxx
-EMAIL_HOST_USER=xxxx
-EMAIL_HOST_PASSWORD=xxx
+
+### 2. Create a `.env` file
+
+Create `docker-deploy/web-app/.env` with the following variables:
+
+```env
+DJANGO_SECRET_KEY=your-secret-key-here
+DJANGO_DEBUG=False
+
+POSTGRES_DB=postgres
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your-db-password
+
+GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+
+EMAIL_HOST_USER=your-gmail@gmail.com
+EMAIL_HOST_PASSWORD=your-app-password
 ```
-The token.json and credentials.json are also used for sending email notifications to the users.
 
+> Do **not** commit the `.env` file. It is already listed in `.gitignore`.
 
-![alt text](Homepage.png)
+### 3. (Optional) Set up Gmail OAuth2
 
-## What's New
+Email notifications use the Gmail API with OAuth2:
 
+1. Download `credentials.json` from Google Cloud Console (OAuth2 Desktop client)
+2. Place it in `docker-deploy/web-app/`
+3. Run once locally to generate a token:
+   ```bash
+   cd docker-deploy/web-app
+   python gmail_token.py
+   ```
+4. The generated `token.json` stays in the same directory (do **not** commit it)
 
+### 4. Start the application
 
-### 2025-02-07
-- Email registration implemented
-- Store user emails in the database
-- Send email notifications when a ride is accepted
+```bash
+cd docker-deploy
+docker-compose up --build
+```
 
-### 2025-02-03
-- Users can only modify existing ride requests and view ride history; they can no longer initiate new ride requests.
-- Users can now see detailed information about their past rides.
-- **Notes (Limitations):**  
-  - Each ride can only have one sharer (this restriction is not yet implemented).  
-  - When ride-sharing is enabled, the route follows this order:  
-    **Initiator → Passenger pickup point → (Passenger drop-off point, Initiator’s destination)**.  
-    The last two steps can be adjusted for optimal route efficiency, but all drop-off times must remain within the passengers’ allowed time windows.
+The app will be available at [http://localhost:8000](http://localhost:8000).
 
-## Danger Log / TODO  
+### 5. Stop the application
 
-### **Feb 6**  
+```bash
+docker-compose down
+```
 
-#### **Must Do**  
-- [X] Fix crashes caused by incorrect input from the sharer (add error handling).  
-- [X] Adjust the sharer/requester passenger count display, as it currently appears inconsistent (though the actual count validation happens elsewhere).  
-- [X] Ensure that drivers only see ride requests that match their criteria.  
-- [X] Ride information display is incomplete; possible solutions:  
-  1. Add a **"View Details"** function.  
-  2. Display all ride details directly.  
+To also remove the database volume:
 
-#### **Optional**  
-- [ ] Users with an active ride (as either a sharer or requester) should not be able to act as a driver.  
-      If they try, show a message: *"You have an ongoing ride. Please cancel it before switching roles."*  
-- [X] Review the **Danger Log** and **TODO List** for any overlooked issues. Also, translate remaining Chinese notes.  
-- [X] Test UI responsiveness across different browsers, window sizes, and devices (mobile, desktop, etc.).  
+```bash
+docker-compose down -v
+```
 
-### **Feb 4**  
+## Project Structure
 
-#### **Must Do**  
-- [X] The ride modification page should have a similar layout to the ride request page.  
-- [X] Add a unique ID for each ride request.  
-- [X] Allow users to cancel their ride requests.  
+```
+docker-deploy/
+  web-app/
+    accounts/             # User registration, login, profile
+    rider/                # Ride requests, sharing, dashboard
+    driver/               # Driver registration, ride acceptance
+    utils/                # Gmail API helper
+    rideshare_project/    # Django project settings and URLs
+    templates/            # Base HTML templates
+    static/               # Static assets
+  nginx/                  # Nginx reverse proxy config
+  docker-compose.yml
+```
 
-### **Feb 3**  
+## Environment Variables Reference
 
-#### **Must Do**  
-- [ ] A driver cannot switch to rider mode while carrying a passenger, and vice versa.  
-- [X] Clicking on a ride should display full details (driver, sharer, etc.).  
-- [X] Each ride should have only one sharer (restriction not yet implemented).  
-- [X] The initiator’s latest arrival time must be later than the modification time + estimated travel time + 1 minute.  
-- [X] A sharer should be able to leave a shared ride and search for another one.  
-- [X] Once a sharer confirms a ride, their dashboard should resemble the initiator’s,  
-      but clicking **"Modify Ride"** should redirect them to the ride search page instead.  
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DJANGO_SECRET_KEY` | Django secret key | insecure dev key |
+| `DJANGO_DEBUG` | Enable debug mode | `True` |
+| `POSTGRES_DB` | Database name | `postgres` |
+| `POSTGRES_USER` | Database user | `postgres` |
+| `POSTGRES_PASSWORD` | Database password | `postgres` |
+| `GOOGLE_MAPS_API_KEY` | Google Maps API key | — |
+| `EMAIL_HOST_USER` | Gmail address | — |
+| `EMAIL_HOST_PASSWORD` | Gmail app password | — |
 
-### **Feb 1**  
+## Known Limitations
 
-#### **Must Do**  
-- [X] Add `.gitignore` file for `__pycache__` and `.vscode`.  
-- [X] Allow non-standard pickup and drop-off locations.  
-- [X] Prevent excessively large passenger counts.  
-- [X] Ensure pickup date and time are not in the past.  
-- [X] Implement ride-sharing option.  
-- [X] Allow users to select an optional vehicle type.  
-- [X] Add arrival date and time.    
-- [X] The ride owner can modify an active ride.  
-- [X] On the main dashboard, only a summary of rides should be displayed. Clicking on a ride should show more details.  
-- [X] Allow drivers to update their vehicle information.  
-- [X] Restrict drivers to accepting only one ride at a time.  
-- [X] Allow drivers to view their ride history.  
-- [X] Allow drivers to see ride details.  
-- [X] Enable drivers to mark a ride as **"finished."**  
-- [X] Ensure drivers can only select rides that match their vehicle type.  
-
-#### **Optional**  
-- [ ] Implement time zone selection for users.  
-- [X] Allow users to update their profile and password.  
-- [X] Require users to fill in mandatory fields before proceeding.  
+- Each ride can only have one sharer.
+- A driver cannot switch to rider mode while carrying a passenger (and vice versa) — not yet enforced.
+- Time zone selection for users is not yet implemented.
